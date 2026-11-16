@@ -153,15 +153,18 @@
         .cabinet-list {
             width: 100%;
             max-width: 400px;
-            text-align: left;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
             padding: 20px;
         }
 
         .cabinet-item {
+            width: 100%;
             background: var(--card-bg);
             padding: 15px;
-            border-radius: 10px;
-            margin-bottom: 10px;
+            border-radius: 15px;
+            margin-bottom: 12px;
             border: 1px solid #333;
             display: flex;
             justify-content: space-between;
@@ -205,7 +208,7 @@
             cursor: pointer;
             font-weight: bold;
             font-size: 12px;
-            margin-left: 5px;
+            margin-left: 8px;
         }
 
         .match-overlay {
@@ -331,7 +334,7 @@
                                     Delete
                                 </button>
                             </div>
-                    `).join('');
+                        `).join('');
                 }
             }
 
@@ -383,6 +386,7 @@
                 f.genre.toLowerCase().includes(query)
             );
             filtered.sort((a, b) => a.watched - b.watched);
+
             if (filtered.length === 0) {
                 list.innerHTML = '<p style="text-align:center; color:#888; margin-top:20px;">No matches found.</p>';
             } else {
