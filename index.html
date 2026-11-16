@@ -192,27 +192,23 @@
     </div>
 
     <!-- ЭКРАН 3: КАБИНЕТ -->
+    <!-- ЛИЧНЫЙ КАБИНЕТ (Обновленный) -->
     <div id="screen-cabinet" class="screen">
         <h2 style="color: var(--accent-green);">My Favorites</h2>
+        
+        <!-- Поле поиска -->
+        <input type="text" id="cabinet-search" placeholder="Search movies..." 
+               style="width: 80%; padding: 12px; border-radius: 10px; border: 1px solid #444; background: #222; color: white; margin-bottom: 20px; outline: none;">
+        
         <div class="cabinet-list" id="cabinet-list">
-            <p>No favorites yet.</p>
+            <!-- Список генерируется динамически -->
         </div>
+        
         <button class="menu-btn" style="margin-top: 20px;" onclick="showHome()">Back Home</button>
     </div>
 
-    <!-- Оверлей матча -->
-    <!-- ОВНОВЛЕННЫЙ Match Overlay -->
-    <div class="match-overlay" id="match-overlay">
-        <h1>🎬 FINAL CHOICE!</h1>
-        <p id="winner-name"></p>
-        <div style="display: flex; gap: 20px;">
-            <button id="save-btn" style="padding: 15px 30px; border-radius: 20px; border: none; background: var(--accent-green); color: white; cursor: pointer; font-weight: bold;">❤️ Save to Favorites</button>
-            <button onclick="closeMatch()" style="padding: 15px 30px; border-radius: 20px; border: none; background: white; cursor: pointer; font-weight: bold;">Skip</button>
-        </div>
-    </div>
-
     <script>
-        // База данных (Оставляем как есть)
+        // База данных (оставляем твою существующую базу здесь)
         const movieDatabase = {
             top100: [
                 { title: "The Godfather", year: "1972", genre: "Crime", desc: "The aging patriarch of an organized crime dynasty." },
@@ -311,26 +307,99 @@
             setTimeout(() => {
                 document.getElementById('match-overlay').style.display = 'flex';
                 document.getElementById('winner-name').innerText = movie.title;
-                // Подготавливаем данные для сохранения
                 document.getElementById('save-btn').onclick = () => {
                     saveToFavorites(movie);
                 };
             }, 500);
         }
 
-        // ФУНКЦИЯ СОХРАНЕНИЯ
+        // СОХРАНЕНИЕ В ИЗБРАННОЕ
         function saveToFavorites(movie) {
             let favorites = JSON.parse(localStorage.getItem('cineMatch_favs') || '[]');
-            
-            // Проверяем, нет ли уже такого фильма
             const exists = favorites.some(f => f.title === movie.title);
+            
             if (!exists) {
-                favorites.push(movie);
+                // Добавляем флаг watched по умолчанию как false
+                favorites.push({ ...movie, watched: false });
                 localStorage.setItem('cineMatch_favs', JSON.stringify(favorites));
                 alert("Added to your favorites!");
-                showCabinet(); // Переходим в кабинет, чтобы показать результат
+                showCabinet(); // Сразу переходим в кабинет
             } else {
                 alert("Already in your favorites!");
+            }
+        }
+
+        // Отображение кабинета с поиском и сортировкой
+        function showCabinet() {
+            hideAll();
+            const list = document.getElementById('cabinet-list');
+            const searchInput = document.getElementById('cabinet-search');
+            
+            // Сначала очищаем список
+            list.innerHTML = '';
+
+            const favorites = JSON.parse(localStorage.getItem('cineMatch_favs') || '[]');
+            
+            function renderList() {
+                const query = searchInput.value.toLowerCase();
+                
+                // Фильтруем по поиску
+                const filtered = favorites.filter(f => 
+                    f.title.toLowerCase().includes(query) || 
+                    f.genre.toLowerCase().includes(query)
+                );
+
+                // Сортируем: Непросмотренные (watched: false) идут первыми, Просмотренные (watched: true) вниз
+                filtered.sort((a, b) => a.watched - b.watched);
+
+                if (filtered.length === 0) {
+                    list.innerHTML = '<p>No matches found.</p>';
+                } else {
+                    list.innerHTML = filtered.map((f, index) => `
+                        <div class="cabinet-item" style="display: flex; justify-content: space-between; align-items: center;">
+                            <div style="flex: 1;">
+                                <strong style="color:var(--accent-green)">${f.title}</strong> (${f.year})<br>
+                                <small style="color: #888">${f.genre}</small>
+                            </div>
+                            <button 
+                                onclick="toggleWatched(${index})" 
+                                style="padding: 8px 12px; border-radius: 5px; border: none; cursor: pointer; background: ${f.watched ? '#555' : '#4CAF50'}; color: white;">
+                                ${f.watched ? 'Watched' : 'Watch'}
+                            </button>
+                        </div>
+                    `).join('');
+                }
+            }
+
+            // Слушатель поиска
+            searchInput.oninput = renderList;
+            
+            // Инициализация первого отображения
+            renderList();
+            document.getElementById('screen-cabinet').classList.add('active');
+        }
+
+        // Переключение статуса "Просмотрено"
+        function toggleWatched(index) {
+            let favorites = JSON.parse(localStorage.getItem('cineMatch_favs') || '[]');
+            
+            // Важно: так как мы фильтруем список, нам нужно найти индекс именно в массиве favorites
+            const query = document.getElementById('cabinet-search').value.toLowerCase();
+            const filtered = favorites.filter(f => 
+                f.title.toLowerCase().includes(query) || 
+                f.genre.toLowerCase().includes(query)
+            );
+
+            // Находим нужный фильм по совпадению в отфильтрованном списке
+            // Нам нужно найти его в оригинальном массиве favorites
+            const target = filtered[index];
+            const originalIdx = favorites.findIndex(f => f.title === target.title);
+            
+            if (originalIdx !== -1) {
+                favorites[originalIdx].watched = !favorites[originalIdx].watched;
+                localStorage.setItem('cineMatch_favs', JSON.stringify(favorites));
+                // Перерисовываем кабинет
+                showCabinet(); 
             }
         }
 
@@ -342,24 +411,6 @@
         function showHome() {
             hideAll();
             document.getElementById('screen-home').classList.add('active');
-        }
-
-        function showCabinet() {
-            hideAll();
-            const list = document.getElementById('cabinet-list');
-            const favorites = JSON.parse(localStorage.getItem('cineMatch_favs') || '[]');
-            
-            if (favorites.length === 0) {
-                list.innerHTML = '<p>No favorites yet.</p>';
-            } else {
-                list.innerHTML = favorites.map(f => `
-                    <div class="cabinet-item">
-                        <strong style="color:var(--accent-green)">${f.title}</strong> (${f.year})<br>
-                        <small style="color: #888">${f.genre}</small>
-                    </div>
-                `).join('');
-            }
-            document.getElementById('screen-cabinet').classList.add('active');
         }
 
         function showDuel(category) {
@@ -390,6 +441,7 @@
 
         showHome();
     </script>
+
 
 
 </body>
