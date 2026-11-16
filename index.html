@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CineMatch AI - Duel Mode</title>
+    <title>CineMatch AI - Tournament Mode</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         :root {
@@ -58,17 +58,16 @@
             user-select: none;
         }
 
-        /* Эффект при нажатии на карточку */
+        /* Эффект при нажатии */
         .card:active {
             transform: scale(0.95);
             border-color: var(--accent-green);
         }
 
-        /* Анимации улетания */
+        /* Анимация улетания */
         .fly-away {
             transform: translateY(-100px) rotate(20deg) scale(0.8) !important;
             opacity: 0;
-            pointer-events: none;
         }
 
         .genre {
@@ -132,7 +131,6 @@
     </div>
 
     <script>
-        // База данных
         const movies = [
             { title: "Inception", year: "2010", genre: "Sci-Fi", desc: "A thief who steals secrets through dreams." },
             { title: "The Godfather", year: "1972", genre: "Crime", desc: "The aging patriarch of an organized crime dynasty." },
@@ -148,9 +146,10 @@
             { title: "Titanic", year: "1997", genre: "Drama", desc: "A tragic romance on the ill-fated ship." }
         ];
 
-        let currentIndex = 0; // Индекс первого фильма в дуэли
+        let poolIndex = 2; // Откуда берем новые фильмы
         const container = document.getElementById('duel-container');
 
+        // Создаем DOM-элемент карточки
         function createCardElement(movie) {
             const card = document.createElement('div');
             card.className = 'card';
@@ -160,53 +159,124 @@
                 <div class="year">(${movie.year})</div>
                 <div class="description">${movie.desc}</div>
             `;
-            // Добавляем обработчик клика
-            card.onclick = () => handleSelection(card);
             return card;
         }
 
-        function renderDuel() {
+        // Отрисовка двух карточек
+        function renderDuel(m1, m2) {
             container.innerHTML = '';
             
-            // Проверка окончания списка
-            if (currentIndex >= movies.length - 1) {
+            if (!m1 && !m2) {
                 container.innerHTML = `<div class="card"><div class="genre">Winner</div><h2>No more movies!</h2><p>You've found your match.</p></div>`;
                 return;
             }
 
-            // Рисуем две карточки
-            const card1 = createCardElement(movies[currentIndex]);
-            const card2 = createCardElement(movies[currentIndex + 1]);
-            
-            container.appendChild(card1);
-            container.appendChild(card2);
+            if (m1) container.appendChild(createCardElement(m1));
+            if (m2) container.appendChild(createCardElement(m2));
         }
 
+        // Обработка выбора
         function handleSelection(clickedCard) {
-            const allCards = container.querySelectorAll('.card');
-            // Находим карточку, которая НЕ была нажата
-            const otherCard = Array.from(allCards).find(c => c !== clickedCard);
+            const cards = container.querySelectorAll('.card');
+            const otherCard = Array.from(cards).find(c => c !== clickedCard);
 
             if (otherCard) {
-                // Анимируем улет проигравшей карточки
+                // 1. Анимируем улет проигравшей карточки
                 otherCard.classList.add('fly-away');
 
-                // Через время анимации обновляем список
+                // 2. Ждем завершения анимации
                 setTimeout(() => {
                     otherCard.remove();
                     
-                    // Логика "Битвы": 
-                    // Если мы выбрали первый фильм (0), второй (1) улетает.
-                    // Чтобы дуэль продолжилась, мы должны оставить выбранный фильм (0)
-                    // и подтянуть новый фильм в позицию (1).
+                    // 3. Логика "Турнира"
+                    // Мы должны оставить выбранную карточку и заменить улетевшую на новую из списка.
+                    // Если список кончился, а карточек на экране еще 2 — показываем финальный результат.
                     
-                    // Простая реализация для MVP:
-                    // Мы просто сдвигаем список дальше.
-                    // Если хочешь сложный турнир, здесь нужна будет логика "отсеивания"
-                    currentIndex++;
-                    renderDuel();
+                    if (poolIndex < movies.length) {
+                        // Добавляем новую карточку в пустую позицию (справа или слева)
+                        // Для простоты MVP: просто обновляем дуэль следующими фильмами
+                        // Но так как ты хочешь оставить выбранную — мы просто "подставляем" новый фильм вместо улетевшего.
+                        
+                        // Определяем, куда вставить новую карточку
+                        // (Если улетела правая — вставляем вправо, если левая — влево)
+                        const cardsAfterRemoval = container.querySelectorAll('.card');
+                        
+                        // Но самая простая и надежная логика для турнира:
+                        // Если мы нажали на левую, правая улетела. Мы ставим на ее место следующий из массива.
+                        // Если нажали на правую, левая улетела. Мы ставим на ее место следующий из массива.
+                        
+                        // Реализуем это через обновление массива текущей дуэли
+                        // (Для MVP просто обновим текущий индекс и перерисуем всё, 
+                        // сохранив "победителя" в памяти)
+                        // Но сейчас мы сделаем проще: просто добавим новый фильм в то место, где была карточка.
+                        
+                        // Давай просто обновим индекс и перерисуем, сохранив выбранную карточку
+                        // Но чтобы не усложнять код, мы используем такой хак:
+                        // Мы просто создаем новую пару, где одна из них — та, которую ты выбрал.
+                        
+                        // В данном случае, чтобы выборка была корректной, 
+                        // мы просто двигаем индекс и рендерим следующую пару.
+                        poolIndex++; 
+                        // Но чтобы выборная оставалась, нам нужно хранить её.
+                        // Давай упростим: нажми на одну -> вторая исчезла -> новая пара из списка.
+                        // Если тебе нужно, чтобы именно СТАРАЯ карточка оставалась, 
+                        // мы добавим переменную `currentWinner`.
+                    }
                 }, 400);
             }
+        }
+
+        // --- УЛУЧШЕННАЯ ЛОГИКА ДЛЯ ТВОЕГО ЗАПРОСА ---
+        let winnerMovie = movies[0];
+        let challengerMovie = movies[1];
+        let nextMovieIdx = 2;
+
+        function renderDuelTournament() {
+            container.innerHTML = '';
+            
+            if (winnerMovie && challengerMovie) {
+                const c1 = createCardElement(winnerMovie);
+                const c2 = createCardElement(challengerMovie);
+                container.appendChild(c1);
+                container.appendChild(c2);
+                
+                c1.onclick = () => {
+                    c2.classList.add('fly-away');
+                    setTimeout(() => {
+                        c2.remove();
+                        if (nextMovieIdx < movies.length) {
+                            challengerMovie = movies[nextMovieIdx];
+                            nextMovieIdx++;
+                            renderDuelTournament();
+                        } else {
+                            // Финал!
+                            showFinalMatch(winnerMovie);
+                        }
+                    }, 400);
+                };
+
+                c2.onclick = () => {
+                    c1.classList.add('fly-away');
+                    setTimeout(() => {
+                        c1.remove();
+                        if (nextMovieIdx < movies.length) {
+                            winnerMovie = movies[nextMovieIdx];
+                            nextMovieIdx++;
+                            renderDuelTournament();
+                        } else {
+                            showFinalMatch(challengerMovie);
+                        }
+                    }, 400);
+                };
+            }
+        }
+
+        function showFinalMatch(finalMovie) {
+            container.innerHTML = `<div class="card"><div class="genre">Winner</div><h2>${finalMovie.title}</h2><p>You've made your choice!</p></div>`;
+            setTimeout(() => {
+                document.getElementById('match-overlay').style.display = 'flex';
+                document.getElementById('winner-name').innerText = finalMovie.title;
+            }, 500);
         }
 
         function closeMatch() {
@@ -216,7 +286,7 @@
         const tg = window.Telegram.WebApp;
         tg.expand();
 
-        renderDuel();
+        renderDuelTournament();
     </script>
 </body>
 </html>
