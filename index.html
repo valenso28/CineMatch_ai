@@ -29,7 +29,6 @@
             overflow: hidden;
         }
 
-        /* Screen management */
         .screen {
             display: none;
             width: 100%;
@@ -46,7 +45,6 @@
             display: flex;
         }
 
-        /* Home Screen Styles */
         .home-title {
             font-size: 32px;
             margin-bottom: 40px;
@@ -87,7 +85,6 @@
             background: #333;
         }
 
-        /* Duel Screen Styles */
         .duel-container {
             display: flex;
             gap: 20px;
@@ -122,7 +119,6 @@
             border-color: var(--accent-green);
         }
 
-        /* Animations */
         .fly-away {
             transform: translateY(-100px) rotate(20deg) scale(0.8) !important;
             opacity: 0;
@@ -153,7 +149,6 @@
             color: #ddd;
         }
 
-        /* Cabinet Styles */
         .cabinet-list {
             width: 100%;
             max-width: 400px;
@@ -189,7 +184,6 @@
             outline: none;
         }
 
-        /* Overlay */
         .match-overlay {
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -228,7 +222,9 @@
 
     <!-- DUEL SCREEN -->
     <div id="screen-duel" class="screen">
-        <div class="duel-container" id="duel-container"></div>
+        <div class="duel-container" id="duel-container">
+            <p>Loading movies...</p>
+        </div>
     </div>
 
     <!-- CABINET SCREEN -->
@@ -248,42 +244,7 @@
     </div>
 
     <script>
-        const movieDatabase = {
-            top100: [
-                { title: "The Godfather", year: "1972", genre: "Crime", desc: "The aging patriarch of an organized crime dynasty." },
-                { title: "Schindler's List", year: "1993", genre: "Drama", desc: "A real-life story of heroism." },
-                { title: "Pulp Fiction", year: "1993", genre: "Crime", desc: "The lives of two mob hitmen, a boxer, and a pair of criminals." },
-                { title: "Parasite", year: "2019", genre: "Drama", desc: "Greed and class discrimination in modern Korea." },
-                { title: "Interstellar", year: "2014", genre: "Sci-Fi", desc: "A team of explorers travel through a wormhole in space." },
-                { title: "The Dark Knight", year: "2008", genre: "Action", desc: "Batman faces his greatest challenge against the Joker." },
-                { title: "Spirited Away", year: "2001", genre: "Animation", desc: "A young girl wanders into a world of spirits." },
-                { title: "Gladiator", year: "2000", genre: "Drama", desc: "A former and glorious general sets out to exact vengeance." },
-                { title: "Goodfellas", year: "1990", genre: "Crime", desc: "The true story of the rise and fall of the Lucchese crime family." },
-                { title: "Everything Everywhere", year: "2022", genre: "Adventure", desc: "An extraordinary woman is swept up in a multiversal adventure." }
-            ],
-            drama: [
-                { title: "Manchester by the Sea", year: "2016", genre: "Drama", desc: "A man struggles with his past after a tragedy." },
-                { title: "The Whale", year: "2022", genre: "Drama", desc: "A reclusive man prepares for a final act." },
-                { title: "Moonlight", year: "2016", genre: "Drama", desc: "A complex coming-of-age story." },
-                { title: "Roma", year: "2018", genre: "Drama", desc: "A sweeping portrait of a family in Mexico City." },
-                { title: "La La Land", year: "2016", genre: "Drama", desc: "A jazz pianist and an aspiring actress fall in love." }
-            ],
-            scifi: [
-                { title: "Blade Runner 2049", year: "2017", genre: "Sci-Fi", desc: "A young blade runner unearths a long-buried secret." },
-                { title: "Arrival", year: "2016", genre: "Sci-Fi", desc: "A linguist works to communicate with alien visitors." },
-                { title: "Dune", year: "2021", genre: "Sci-Fi", desc: "A noble family thrown into the center of a galactic war." },
-                { title: "The Matrix", year: "1999", genre: "Sci-Fi", desc: "A hacker learns the truth about his reality." },
-                { title: "Gravity", year: "2013", genre: "Sci-Fi", desc: "An astronaut must survive in outer space." }
-            ],
-            thriller: [
-                { title: "Se7en", year: "1995", genre: "Thriller", desc: "Two detectives hunt a serial killer." },
-                { title: "The Prestige", year: "2006", genre: "Thriller", desc: "Two rival magicians compete for the ultimate trick." },
-                { title: "Shutter Island", year: "2010", genre: "Thriller", desc: "A marshal investigates a disappearance at a mental hospital." },
-                { title: "Memento", year: "2000", genre: "Thriller", desc: "A man with short-term memory loss tries to find his wife's killer." },
-                { title: "Sicario", year: "2015", genre: "Thriller", desc: "An agent-in-training joins an elite task force." }
-            ]
-        };
-
+        let movieDatabase = {};
         let currentWinner = null;
         let currentChallenger = null;
         let poolIndex = 0;
@@ -291,16 +252,83 @@
 
         const container = document.getElementById('duel-container');
 
-        function createCardElement(movie) {
-            const card = document.createElement('div');
-            card.className = 'card';
-            card.innerHTML = `
-                <div class="genre">${movie.genre}</div>
-                <h2>${movie.title}</h2>
-                <div class="year">(${movie.year})</div>
-                <div class="description">${movie.desc}</div>
-            `;
-            return card;
+        // 1. LOAD DATA FROM JSON
+        async function initApp() {
+            try {
+                const response = await fetch('./movies.json');
+                movieDatabase = await response.json();
+                
+                // После загрузки данных показываем главный экран
+                showHome();
+            } catch (error) {
+                console.error("Error loading movies:", error);
+                container.innerHTML = "<p>Error loading database.</p>";
+            }
+        }
+
+        // UI FUNCTIONS
+        function showHome() {
+            hideAll();
+            document.getElementById('screen-home').classList.add('active');
+        }
+
+        function showCabinet() {
+            hideAll();
+            const list = document.getElementById('cabinet-list');
+            const searchInput = document.getElementById('cabinet-search');
+            list.innerHTML = '';
+            const favorites = JSON.parse(localStorage.getItem('cineMatch_favs') || '[]');
+            
+            function renderList() {
+                const query = searchInput.value.toLowerCase();
+                const filtered = favorites.filter(f => 
+                    f.title.toLowerCase().includes(query) || 
+                    f.genre.toLowerCase().includes(query)
+                );
+
+                filtered.sort((a, b) => a.watched - b.watched);
+
+                if (filtered.length === 0) {
+                    list.innerHTML = '<p style="text-align:center; color:#888; margin-top:20px;">No matches found.</p>';
+                } else {
+                    list.innerHTML = filtered.map((f, index) => `
+                        <div class="cabinet-item">
+                            <div style="flex: 1;">
+                                <strong style="color:var(--accent-green)">${f.title}</strong> (${f.year})<br>
+                                <small style="color: #888">${f.genre}</small>
+                            </div>
+                            <button 
+                                onclick="toggleWatched(${index})" 
+                                style="padding: 10px 15px; border-radius: 8px; border: none; cursor: pointer; background: ${f.watched ? '#555' : '#4CAF50'}; color: white; font-weight: bold; font-size: 12px;">
+                                ${f.watched ? 'Watched' : 'Watch'}
+                            </button>
+                        </div>
+                    `).join('');
+                }
+            }
+
+            searchInput.oninput = renderList;
+            renderList();
+            document.getElementById('screen-cabinet').classList.add('active');
+        }
+
+        function showDuel(category) {
+            hideAll();
+            currentPool = [...movieDatabase[category]];
+            poolIndex = 0;
+            
+            if (currentPool.length >= 2) {
+                currentWinner = currentPool[0];
+                currentChallenger = currentPool[1];
+                currentPool.splice(0, 2);
+            } else {
+                currentWinner = currentPool[0];
+                currentChallenger = currentPool[1] || currentPool[0];
+                currentPool = [];
+            }
+
+            renderDuel();
+            document.getElementById('screen-duel').classList.add('active');
         }
 
         function renderDuel() {
@@ -341,6 +369,18 @@
             }
         }
 
+        function createCardElement(movie) {
+            const card = document.createElement('div');
+            card.className = 'card';
+            card.innerHTML = `
+                <div class="genre">${movie.genre}</div>
+                <h2>${movie.title}</h2>
+                <div class="year">(${movie.year})</div>
+                <div class="description">${movie.desc}</div>
+            `;
+            return card;
+        }
+
         function showFinal(movie) {
             container.innerHTML = `<div class="card"><div class="genre">Winner</div><h2>${movie.title}</h2><p>You've found your match!</p></div>`;
             setTimeout(() => {
@@ -352,7 +392,6 @@
             }, 500);
         }
 
-        // --- CABINET LOGIC ---
         function saveToFavorites(movie) {
             let favorites = JSON.parse(localStorage.getItem('cineMatch_favs') || '[]');
             const exists = favorites.some(f => f.title === movie.title);
@@ -361,63 +400,19 @@
                 favorites.push({ ...movie, watched: false });
                 localStorage.setItem('cineMatch_favs', JSON.stringify(favorites));
                 alert("Saved to favorites!");
-                
-                // FIX: Hide overlay first, then show cabinet
-                document.getElementById('match-overlay').style.display = 'none';
                 showCabinet(); 
             } else {
                 alert("Already in favorites!");
             }
         }
 
-        function showCabinet() {
-            hideAll();
-            const list = document.getElementById('cabinet-list');
-            const searchInput = document.getElementById('cabinet-search');
-            
-            list.innerHTML = '';
-            const favorites = JSON.parse(localStorage.getItem('cineMatch_favs') || '[]');
-            
-            function renderList() {
-                const query = searchInput.value.toLowerCase();
-                const filtered = favorites.filter(f => 
-                    f.title.toLowerCase().includes(query) || 
-                    f.genre.toLowerCase().includes(query)
-                );
-
-                filtered.sort((a, b) => a.watched - b.watched);
-
-                if (filtered.length === 0) {
-                    list.innerHTML = '<p style="text-align:center; color:#888; margin-top:20px;">No matches found.</p>';
-                } else {
-                    list.innerHTML = filtered.map((f, index) => `
-                        <div class="cabinet-item">
-                            <div style="flex: 1;">
-                                <strong style="color:var(--accent-green)">${f.title}</strong> (${f.year})<br>
-                                <small style="color: #888">${f.genre}</small>
-                            </div>
-                            <button 
-                                onclick="toggleWatched(${index})" 
-                                style="padding: 10px 15px; border-radius: 8px; border: none; cursor: pointer; background: ${f.watched ? '#555' : '#4CAF50'}; color: white; font-weight: bold; font-size: 12px;">
-                                ${f.watched ? 'Watched' : 'Watch'}
-                            </button>
-                        </div>
-                    `).join('');
-                }
-            }
-
-            searchInput.oninput = renderList;
-            renderList();
-            document.getElementById('screen-cabinet').classList.add('active');
-        }
-
         function toggleWatched(index) {
-            const searchInput = document.getElementById('cabinet-search').value.toLowerCase();
+            const searchInput = document.getElementById('cabinet-search');
             const favorites = JSON.parse(localStorage.getItem('cineMatch_favs') || '[]');
-            
+            const query = searchInput.value.toLowerCase();
             const filtered = favorites.filter(f => 
-                f.title.toLowerCase().includes(searchInput) || 
-                f.genre.toLowerCase().includes(searchInput)
+                f.title.toLowerCase().includes(query) || 
+                f.genre.toLowerCase().includes(query)
             );
 
             const target = filtered[index];
@@ -430,33 +425,41 @@
             }
         }
 
+        function renderCabinetList() {
+            const list = document.getElementById('cabinet-list');
+            const searchInput = document.getElementById('cabinet-search');
+            list.innerHTML = '';
+            const favorites = JSON.parse(localStorage.getItem('cineMatch_favs') || '[]');
+            const query = searchInput.value.toLowerCase();
+            
+            const filtered = favorites.filter(f => 
+                f.title.toLowerCase().includes(query) || 
+                f.genre.toLowerCase().includes(query)
+            );
+
+            filtered.sort((a, b) => a.watched - b.watched);
+
+            if (filtered.length === 0) {
+                list.innerHTML = '<p style="text-align:center; color:#888; margin-top:20px;">No matches found.</p>';
+            } else {
+                list.innerHTML = filtered.map((f) => `
+                    <div class="cabinet-item">
+                        <div style="flex: 1;">
+                            <strong style="color:var(--accent-green)">${f.title}</strong> (${f.year})<br>
+                            <small style="color: #888">${f.genre}</small>
+                        </div>
+                        <button 
+                            onclick="toggleWatched(${index})" 
+                            style="padding: 10px 15px; border-radius: 8px; border: none; cursor: pointer; background: ${f.watched ? '#555' : '#4CAF50'}; color: white; font-weight: bold; font-size: 12px;">
+                            ${f.watched ? 'Watched' : 'Watch'}
+                        </button>
+                    `).join('');
+            }
+        }
+
         function closeMatch() {
             document.getElementById('match-overlay').style.display = 'none';
             showHome();
-        }
-
-        function showHome() {
-            hideAll();
-            document.getElementById('screen-home').classList.add('active');
-        }
-
-        function showDuel(category) {
-            hideAll();
-            currentPool = [...movieDatabase[category]];
-            poolIndex = 0;
-            
-            if (currentPool.length >= 2) {
-                currentWinner = currentPool[0];
-                currentChallenger = currentPool[1];
-                currentPool.splice(0, 2);
-            } else {
-                currentWinner = currentPool[0];
-                currentChallenger = currentPool[1] || currentPool[0];
-                currentPool = [];
-            }
-
-            renderDuel();
-            document.getElementById('screen-duel').classList.add('active');
         }
 
         function hideAll() {
@@ -466,7 +469,8 @@
         const tg = window.Telegram.WebApp;
         tg.expand();
 
-        showHome();
+        // Запуск приложения
+        initApp();
     </script>
 </body>
 </html>
