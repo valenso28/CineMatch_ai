@@ -80,12 +80,7 @@
             margin-bottom: 10px;
         }
 
-        .menu-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        .menu-btn:active:not(:disabled) {
+        .menu-btn:active {
             transform: scale(0.95);
             background: #333;
         }
@@ -216,7 +211,7 @@
     <!-- HOME SCREEN -->
     <div id="screen-home" class="screen active">
         <h1 class="home-title">CineMatch AI</h1>
-        <div class="menu-grid" id="menu-grid">
+        <div class="menu-grid">
             <button class="menu-btn primary" onclick="showDuel('top100')">🏆 Top 100 of 20th Century</button>
             <button class="menu-btn" onclick="showDuel('drama')">🎭 Drama</button>
             <button class="menu-btn" onclick="showDuel('scifi')">🚀 Sci-Fi</button>
@@ -257,17 +252,12 @@
 
         const container = document.getElementById('duel-container');
 
-        // 1. LOAD DATA FROM JSON
         async function initApp() {
             try {
                 const response = await fetch('./movies.json');
                 movieDatabase = await response.json();
-                console.log("Database Loaded:", movieDatabase);
-                
-                // Only enable buttons after data is ready
                 const buttons = document.querySelectorAll('.menu-btn');
                 buttons.forEach(btn => btn.disabled = false);
-                
                 showHome();
             } catch (error) {
                 console.error("Error loading movies:", error);
@@ -275,7 +265,6 @@
             }
         }
 
-        // UI FUNCTIONS
         function showHome() {
             hideAll();
             document.getElementById('screen-home').classList.add('active');
@@ -323,13 +312,6 @@
 
         function showDuel(category) {
             hideAll();
-            
-            if (!movieDatabase[category]) {
-                alert("Category not found!");
-                showHome();
-                return;
-            }
-
             currentPool = [...movieDatabase[category]];
             poolIndex = 0;
             
@@ -337,14 +319,10 @@
                 currentWinner = currentPool[0];
                 currentChallenger = currentPool[1];
                 currentPool.splice(0, 2);
-            } else if (currentPool.length === 1) {
-                currentWinner = currentPool[0];
-                currentChallenger = null; // Handle small lists
-                currentPool = [];
             } else {
-                alert("Not enough movies in this category.");
-                showHome();
-                return;
+                currentWinner = currentPool[0];
+                currentChallenger = currentPool[1] || currentPool[0];
+                currentPool = [];
             }
 
             renderDuel();
@@ -353,7 +331,6 @@
 
         function renderDuel() {
             container.innerHTML = '';
-            
             if (currentWinner && currentChallenger) {
                 const c1 = createCardElement(currentWinner);
                 const c2 = createCardElement(currentChallenger);
@@ -387,15 +364,6 @@
                         }
                     }, 400);
                 };
-            } else if (currentWinner) {
-                // Handle case where only one movie remains
-                container.innerHTML = `<div class="card"><div class="genre">Winner</div><h2>${currentWinner.title}</h2><p>You've found your match!</p></div>`;
-                setTimeout(() => {
-                    document.getElementById('match-overlay').style.display = 'flex';
-                    document.getElementById('winner-name').innerText = currentWinner.title;
-                }, 500);
-            } else {
-                container.innerHTML = "<p>No movies found in this category.</p>";
             }
         }
 
@@ -430,6 +398,9 @@
                 favorites.push({ ...movie, watched: false });
                 localStorage.setItem('cineMatch_favs', JSON.stringify(favorites));
                 alert("Saved to favorites!");
+                
+                // FIX: Hide overlay BEFORE showing cabinet
+                document.getElementById('match-overlay').style.display = 'none';
                 showCabinet(); 
             } else {
                 alert("Already in favorites!");
@@ -473,7 +444,7 @@
             if (filtered.length === 0) {
                 list.innerHTML = '<p style="text-align:center; color:#888; margin-top:20px;">No matches found.</p>';
             } else {
-                list.innerHTML = filtered.map((f, index) => `
+                list.innerHTML = filtered.map((f) => `
                     <div class="cabinet-item">
                         <div style="flex: 1;">
                             <strong style="color:var(--accent-green)">${f.title}</strong> (${f.year})<br>
@@ -491,11 +462,6 @@
         function closeMatch() {
             document.getElementById('match-overlay').style.display = 'none';
             showHome();
-        }
-
-        function showHome() {
-            hideAll();
-            document.getElementById('screen-home').classList.add('active');
         }
 
         function hideAll() {
