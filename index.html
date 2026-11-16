@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CineMatch AI - Tournament Mode</title>
+    <title>CineMatch AI</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         :root {
@@ -29,6 +29,65 @@
             overflow: hidden;
         }
 
+        /* Общий стиль для экранов */
+        .screen {
+            display: none;
+            width: 100%;
+            height: 100%;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            box-sizing: border-box;
+            text-align: center;
+        }
+
+        .screen.active {
+            display: flex;
+        }
+
+        /* Стартовый экран */
+        .home-title {
+            font-size: 32px;
+            margin-bottom: 40px;
+            background: linear-gradient(to right, #4CAF50, #ffffff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .menu-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .menu-btn {
+            padding: 30px 10px;
+            background: var(--card-bg);
+            border: 1px solid #333;
+            border-radius: 15px;
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .menu-btn.primary {
+            grid-column: span 2;
+            background: linear-gradient(145deg, #2e7d32, #4CAF50);
+            border: none;
+            margin-bottom: 10px;
+        }
+
+        .menu-btn:active {
+            transform: scale(0.95);
+            background: #333;
+        }
+
+        /* Турнирный экран (наш старый движок) */
         .duel-container {
             display: flex;
             gap: 20px;
@@ -58,42 +117,45 @@
             user-select: none;
         }
 
-        /* Эффект при нажатии */
-        .card:active {
-            transform: scale(0.95);
-            border-color: var(--accent-green);
+        .card:active { transform: scale(0.95); border-color: var(--accent-green); }
+        .fly-away { transform: translateY(-100px) rotate(20deg) scale(0.8) !important; opacity: 0; }
+
+        .genre { font-size: 10px; text-transform: uppercase; color: var(--accent-green); margin-bottom: 8px; }
+        .card h2 { font-size: 22px; margin: 0 0 10px 0; }
+        .card .year { font-size: 14px; color: var(--text-dim); margin-bottom: 15px; }
+        .card .description { font-size: 13px; line-height: 1.4; color: #ddd; }
+
+        /* Личный кабинет */
+        .cabinet-list {
+            width: 100%;
+            max-width: 400px;
+            text-align: left;
+            padding: 20px;
         }
 
-        /* Анимация улетания */
-        .fly-away {
-            transform: translateY(-100px) rotate(20deg) scale(0.8) !important;
-            opacity: 0;
+        .cabinet-item {
+            background: var(--card-bg);
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #333;
         }
 
-        .genre {
-            font-size: 10px;
-            text-transform: uppercase;
-            letter-spacing: 1.5px;
-            color: var(--accent-green);
-            margin-bottom: 8px;
+        /* Навигационная панель */
+        .nav-bar {
+            position: fixed;
+            bottom: 20px;
+            display: flex;
+            gap: 10px;
         }
 
-        .card h2 {
-            font-size: 22px;
-            margin: 0 0 10px 0;
-            color: var(--text-main);
-        }
-
-        .card .year {
-            font-size: 14px;
-            color: var(--text-dim);
-            margin-bottom: 15px;
-        }
-
-        .card .description {
-            font-size: 13px;
-            line-height: 1.4;
-            color: #ddd;
+        .nav-btn {
+            padding: 10px 20px;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid white;
+            color: white;
+            border-radius: 20px;
+            cursor: pointer;
         }
 
         .match-overlay {
@@ -106,50 +168,116 @@
             align-items: center;
             z-index: 100;
         }
-
         .match-overlay h1 { color: var(--accent-green); font-size: 40px; }
-        .match-overlay button {
-            padding: 12px 30px;
-            border-radius: 20px;
-            border: none;
-            background: white;
-            cursor: pointer;
-            font-weight: bold;
-        }
+        .match-overlay button { padding: 12px 30px; border-radius: 20px; border: none; background: white; cursor: pointer; font-weight: bold; }
     </style>
 </head>
 <body class="tg-app">
 
-    <div class="duel-container" id="duel-container">
-        <!-- Карточки будут здесь -->
+    <!-- ЭКРАН 1: ДОМ -->
+    <div id="screen-home" class="screen active">
+        <h1 class="home-title">CineMatch AI</h1>
+        <div class="menu-grid">
+            <button class="menu-btn primary" onclick="showDuel('top100')">🏆 Top 100 of 20th Century</button>
+            <button class="menu-btn" onclick="showDuel('drama')">🎭 Drama</button>
+            <button class="menu-btn" onclick="showDuel('scifi')">🚀 Sci-Fi</button>
+            <button class="menu-btn" onclick="showDuel('thriller')">😱 Thriller</button>
+            <button class="menu-btn" onclick="showCabinet()">👤 My Cabinet</button>
+        </div>
     </div>
 
+    <!-- ЭКРАН 2: ТУРНИР -->
+    <div id="screen-duel" class="screen">
+        <div class="duel-container" id="duel-container"></div>
+    </div>
+
+    <!-- ЭКРАН 3: КАБИНЕТ -->
+    <div id="screen-cabinet" class="screen">
+        <h2 style="color: var(--accent-green);">My Favorites</h2>
+        <div class="cabinet-list" id="cabinet-list">
+            <p>No favorites yet.</p>
+        </div>
+        <button class="menu-btn" style="margin-top: 20px;" onclick="showHome()">Back Home</button>
+    </div>
+
+    <!-- Оверлей матча -->
     <div class="match-overlay" id="match-overlay">
         <h1>🎬 FINAL CHOICE!</h1>
-        <p>The winner is selected.</p>
+        <p id="winner-name"></p>
         <button onclick="closeMatch()">Start Movie</button>
     </div>
 
     <script>
-        const movies = [
-            { title: "Inception", year: "2010", genre: "Sci-Fi", desc: "A thief who steals secrets through dreams." },
-            { title: "The Godfather", year: "1972", genre: "Crime", desc: "The aging patriarch of an organized crime dynasty." },
-            { title: "Spirited Away", year: "2001", genre: "Animation", desc: "A girl wanders into a world of spirits." },
-            { title: "Interstellar", year: "2014", genre: "Sci-Fi", desc: "A team of explorers travel through a wormhole." },
-            { title: "Parasite", year: "2019", genre: "Drama", desc: "Greed and class discrimination in modern Korea." },
-            { title: "The Dark Knight", year: "2008", genre: "Action", desc: "Batman faces his greatest challenge against the Joker." },
-            { title: "Everything Everywhere", year: "2022", genre: "Adventure", desc: "An extraordinary woman is swept up in a multiversal adventure." },
-            { title: "Pulp Fiction", year: "1993", genre: "Crime", desc: "The lives of two mob hitmen, a boxer, and a pair of criminals." },
-            { title: "Dune", year: "2021", genre: "Sci-Fi", desc: "A noble family thrown into the center of a galactic war." },
-            { title: "Gladiator", year: "2000", genre: "Drama", desc: "A former and glorious general sets out to exact vengeance." },
-            { title: "Matrix", year: "1999", genre: "Sci-Fi", desc: "A hacker learns the truth about his reality." },
-            { title: "Titanic", year: "1997", genre: "Drama", desc: "A tragic romance on the ill-fated ship." }
-        ];
+        // База данных (Временно используем заглушки)
+        const movieDatabase = {
+            top100: [
+                { title: "The Godfather", year: "1972", genre: "Crime", desc: "The aging patriarch of an organized crime dynasty." },
+                { title: "Casablanca", year: "1942", genre: "Drama", desc: "A complex love story in wartime." },
+                { title: "Schindler's List", year: "1993", genre: "Drama", desc: "A real-life story of heroism." }
+            ],
+            drama: [
+                { title: "Parasite", year: "2019", genre: "Drama", desc: "Greed and class discrimination." },
+                { title: "Manchester by the Sea", year: "2016", genre: "Drama", desc: "A story of grief." }
+            ],
+            scifi: [
+                { title: "Inception", year: "2010", genre: "Sci-Fi", desc: "Dreams within dreams." },
+                { title: "Interstellar", year: "2014", genre: "Sci-Fi", desc: "A journey through space." }
+            ],
+            thriller: [
+                { title: "The Prestige", year: "2006", genre: "Thriller", desc: "A rivalry between two magicians." },
+                { title: "Se7en", year: "1995", genre: "Thriller", desc: "A dark hunt for a serial killer." }
+            ]
+        };
 
-        let poolIndex = 2; // Откуда берем новые фильмы
+        let currentDuelList = [];
+        let winnerMovie = null;
+        let challengerMovie = null;
+        let nextIdx = 0;
+
+        // Навигация
+        function showHome() {
+            hideAll();
+            document.getElementById('screen-home').classList.add('active');
+        }
+
+        function showCabinet() {
+            hideAll();
+            const list = document.getElementById('cabinet-list');
+            const favorites = JSON.parse(localStorage.getItem('cineMatch_favs') || '[]');
+            
+            if (favorites.length === 0) {
+                list.innerHTML = '<p>No favorites yet.</p>';
+            } else {
+                list.innerHTML = favorites.map(f => `
+                    <div class="cabinet-item">
+                        <strong>${f.title}</strong> (${f.year})<br>
+                        <small style="color: #888">${f.genre}</small>
+                    </div>
+                `).join('');
+            }
+            document.getElementById('screen-cabinet').classList.add('active');
+        }
+
+        function showDuel(category) {
+            hideAll();
+            currentDuelList = movieDatabase[category];
+            nextIdx = 0;
+            
+            // Выбираем первые два фильма для начала дуэли
+            winnerMovie = currentDuelList[0];
+            challengerMovie = currentDuelList[1];
+            
+            renderDuelTournament();
+            document.getElementById('screen-duel').classList.add('active');
+        }
+
+        function hideAll() {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        }
+
+        // Турнирная логика
         const container = document.getElementById('duel-container');
 
-        // Создаем DOM-элемент карточки
         function createCardElement(movie) {
             const card = document.createElement('div');
             card.className = 'card';
@@ -162,78 +290,8 @@
             return card;
         }
 
-        // Отрисовка двух карточек
-        function renderDuel(m1, m2) {
-            container.innerHTML = '';
-            
-            if (!m1 && !m2) {
-                container.innerHTML = `<div class="card"><div class="genre">Winner</div><h2>No more movies!</h2><p>You've found your match.</p></div>`;
-                return;
-            }
-
-            if (m1) container.appendChild(createCardElement(m1));
-            if (m2) container.appendChild(createCardElement(m2));
-        }
-
-        // Обработка выбора
-        function handleSelection(clickedCard) {
-            const cards = container.querySelectorAll('.card');
-            const otherCard = Array.from(cards).find(c => c !== clickedCard);
-
-            if (otherCard) {
-                // 1. Анимируем улет проигравшей карточки
-                otherCard.classList.add('fly-away');
-
-                // 2. Ждем завершения анимации
-                setTimeout(() => {
-                    otherCard.remove();
-                    
-                    // 3. Логика "Турнира"
-                    // Мы должны оставить выбранную карточку и заменить улетевшую на новую из списка.
-                    // Если список кончился, а карточек на экране еще 2 — показываем финальный результат.
-                    
-                    if (poolIndex < movies.length) {
-                        // Добавляем новую карточку в пустую позицию (справа или слева)
-                        // Для простоты MVP: просто обновляем дуэль следующими фильмами
-                        // Но так как ты хочешь оставить выбранную — мы просто "подставляем" новый фильм вместо улетевшего.
-                        
-                        // Определяем, куда вставить новую карточку
-                        // (Если улетела правая — вставляем вправо, если левая — влево)
-                        const cardsAfterRemoval = container.querySelectorAll('.card');
-                        
-                        // Но самая простая и надежная логика для турнира:
-                        // Если мы нажали на левую, правая улетела. Мы ставим на ее место следующий из массива.
-                        // Если нажали на правую, левая улетела. Мы ставим на ее место следующий из массива.
-                        
-                        // Реализуем это через обновление массива текущей дуэли
-                        // (Для MVP просто обновим текущий индекс и перерисуем всё, 
-                        // сохранив "победителя" в памяти)
-                        // Но сейчас мы сделаем проще: просто добавим новый фильм в то место, где была карточка.
-                        
-                        // Давай просто обновим индекс и перерисуем, сохранив выбранную карточку
-                        // Но чтобы не усложнять код, мы используем такой хак:
-                        // Мы просто создаем новую пару, где одна из них — та, которую ты выбрал.
-                        
-                        // В данном случае, чтобы выборка была корректной, 
-                        // мы просто двигаем индекс и рендерим следующую пару.
-                        poolIndex++; 
-                        // Но чтобы выборная оставалась, нам нужно хранить её.
-                        // Давай упростим: нажми на одну -> вторая исчезла -> новая пара из списка.
-                        // Если тебе нужно, чтобы именно СТАРАЯ карточка оставалась, 
-                        // мы добавим переменную `currentWinner`.
-                    }
-                }, 400);
-            }
-        }
-
-        // --- УЛУЧШЕННАЯ ЛОГИКА ДЛЯ ТВОЕГО ЗАПРОСА ---
-        let winnerMovie = movies[0];
-        let challengerMovie = movies[1];
-        let nextMovieIdx = 2;
-
         function renderDuelTournament() {
             container.innerHTML = '';
-            
             if (winnerMovie && challengerMovie) {
                 const c1 = createCardElement(winnerMovie);
                 const c2 = createCardElement(challengerMovie);
@@ -244,13 +302,12 @@
                     c2.classList.add('fly-away');
                     setTimeout(() => {
                         c2.remove();
-                        if (nextMovieIdx < movies.length) {
-                            challengerMovie = movies[nextMovieIdx];
-                            nextMovieIdx++;
+                        nextIdx++;
+                        if (nextIdx < currentDuelList.length) {
+                            challengerMovie = currentDuelList[nextIdx];
                             renderDuelTournament();
                         } else {
-                            // Финал!
-                            showFinalMatch(winnerMovie);
+                            showFinal(winnerMovie);
                         }
                     }, 400);
                 };
@@ -259,34 +316,34 @@
                     c1.classList.add('fly-away');
                     setTimeout(() => {
                         c1.remove();
-                        if (nextMovieIdx < movies.length) {
-                            winnerMovie = movies[nextMovieIdx];
-                            nextMovieIdx++;
+                        nextIdx++;
+                        if (nextIdx < currentDuelList.length) {
+                            winnerMovie = currentDuelList[nextIdx];
                             renderDuelTournament();
                         } else {
-                            showFinalMatch(challengerMovie);
+                            showFinal(challengerMovie);
                         }
                     }, 400);
                 };
             }
         }
 
-        function showFinalMatch(finalMovie) {
-            container.innerHTML = `<div class="card"><div class="genre">Winner</div><h2>${finalMovie.title}</h2><p>You've made your choice!</p></div>`;
+        function showFinal(movie) {
+            container.innerHTML = `<div class="card"><div class="genre">Winner</div><h2>${movie.title}</h2><p>You've found your match!</p></div>`;
             setTimeout(() => {
                 document.getElementById('match-overlay').style.display = 'flex';
-                document.getElementById('winner-name').innerText = finalMovie.title;
+                document.getElementById('winner-name').innerText = movie.title;
             }, 500);
         }
 
         function closeMatch() {
             document.getElementById('match-overlay').style.display = 'none';
+            showHome();
         }
 
         const tg = window.Telegram.WebApp;
         tg.expand();
-
-        renderDuelTournament();
+        showHome();
     </script>
 </body>
 </html>
