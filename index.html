@@ -30,6 +30,7 @@
             overflow: hidden;
         }
 
+        /* Screen management */
         .screen {
             display: none;
             width: 100%;
@@ -40,7 +41,7 @@
             padding: 20px;
             box-sizing: border-box;
             text-align: center;
-            overflow-y: auto; /* Позволяет скроллить контент внутри экрана */
+            overflow-y: auto;
         }
 
         .screen.active {
@@ -87,6 +88,7 @@
             background: #333;
         }
 
+        /* Duel Screen Styles */
         .duel-container {
             display: flex;
             gap: 20px;
@@ -151,7 +153,7 @@
             color: #ddd;
         }
 
-        /* Cabinet Styles - Revised for Vertical List */
+        /* Cabinet Styles - FIXED VERTICAL LAYOUT */
         .cabinet-list {
             width: 100%;
             max-width: 400px;
@@ -159,7 +161,6 @@
             flex-direction: column;
             gap: 12px;
             padding: 10px;
-            margin-bottom: 20px;
         }
 
         .cabinet-item {
@@ -206,15 +207,16 @@
             font-size: 12px;
         }
 
+        /* Overlay - FIX: Ensured it hides correctly */
         .match-overlay {
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.95);
+            background: rgba(0,0,0,0.98);
             display: none;
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            z-index: 100;
+            z-index: 9999;
         }
         .match-overlay h1 { color: var(--accent-green); font-size: 40px; }
         .match-overlay button {
@@ -346,6 +348,8 @@
                 favorites.push({ ...movie, watched: false });
                 localStorage.setItem('cineMatch_favs', JSON.stringify(favorites));
                 alert("Saved to favorites!");
+                
+                // FIX: Explicitly hide overlay BEFORE switching screens
                 document.getElementById('match-overlay').style.display = 'none';
                 showCabinet(); 
             } else {
