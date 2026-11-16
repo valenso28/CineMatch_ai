@@ -29,7 +29,6 @@
             overflow: hidden;
         }
 
-        /* Screen management */
         .screen {
             display: none;
             width: 100%;
@@ -46,7 +45,6 @@
             display: flex;
         }
 
-        /* Home Screen Styles */
         .home-title {
             font-size: 32px;
             margin-bottom: 40px;
@@ -82,12 +80,8 @@
             margin-bottom: 10px;
         }
 
-        .menu-btn:active {
-            transform: scale(0.95);
-            background: #333;
-        }
+        .menu-btn:active { transform: scale(0.95); }
 
-        /* Duel Screen Styles */
         .duel-container {
             display: flex;
             gap: 20px;
@@ -117,43 +111,14 @@
             user-select: none;
         }
 
-        .card:active {
-            transform: scale(0.95);
-            border-color: var(--accent-green);
-        }
+        .card:active { transform: scale(0.95); border-color: var(--accent-green); }
+        .fly-away { transform: translateY(-100px) rotate(20deg) scale(0.8) !important; opacity: 0; }
 
-        /* Animations */
-        .fly-away {
-            transform: translateY(-100px) rotate(20deg) scale(0.8) !important;
-            opacity: 0;
-        }
+        .genre { font-size: 10px; text-transform: uppercase; color: var(--accent-green); margin-bottom: 8px; }
+        .card h2 { font-size: 22px; margin: 0 0 10px 0; }
+        .card .year { font-size: 14px; color: var(--text-dim); margin-bottom: 15px; }
+        .card .description { font-size: 13px; line-height: 1.4; color: #ddd; }
 
-        .genre {
-            font-size: 10px;
-            text-transform: uppercase;
-            color: var(--accent-green);
-            margin-bottom: 8px;
-        }
-
-        .card h2 {
-            font-size: 22px;
-            margin: 0 0 10px 0;
-            color: var(--text-main);
-        }
-
-        .card .year {
-            font-size: 14px;
-            color: var(--text-dim);
-            margin-bottom: 15px;
-        }
-
-        .card .description {
-            font-size: 13px;
-            line-height: 1.4;
-            color: #ddd;
-        }
-
-        /* Cabinet Styles */
         .cabinet-list {
             width: 100%;
             max-width: 400px;
@@ -189,7 +154,6 @@
             outline: none;
         }
 
-        /* Overlay */
         .match-overlay {
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -200,7 +164,6 @@
             align-items: center;
             z-index: 100;
         }
-
         .match-overlay h1 { color: var(--accent-green); font-size: 40px; }
         .match-overlay button {
             padding: 15px 30px;
@@ -249,7 +212,6 @@
     </div>
 
     <script>
-        // Movie Database
         const movieDatabase = {
             top100: [
                 { title: "The Godfather", year: "1972", genre: "Crime", desc: "The aging patriarch of an organized crime dynasty." },
@@ -354,7 +316,6 @@
             }, 500);
         }
 
-        // --- CABINET LOGIC ---
         function saveToFavorites(movie) {
             let favorites = JSON.parse(localStorage.getItem('cineMatch_favs') || '[]');
             const exists = favorites.some(f => f.title === movie.title);
@@ -362,7 +323,7 @@
             if (!exists) {
                 favorites.push({ ...movie, watched: false });
                 localStorage.setItem('cineMatch_favs', JSON.stringify(favorites));
-                alert("Saved to favorites!");
+                alert("Added to favorites!");
                 showCabinet(); 
             } else {
                 alert("Already in favorites!");
@@ -384,20 +345,19 @@
                     f.genre.toLowerCase().includes(query)
                 );
 
-                // Sort: Unwatched first, then Watched
                 filtered.sort((a, b) => a.watched - b.watched);
 
                 if (filtered.length === 0) {
                     list.innerHTML = '<p style="text-align:center; color:#888; margin-top:20px;">No matches found.</p>';
                 } else {
-                    list.innerHTML = filtered.map((f, index) => `
+                    list.innerHTML = filtered.map((f) => `
                         <div class="cabinet-item">
                             <div style="flex: 1;">
                                 <strong style="color:var(--accent-green)">${f.title}</strong> (${f.year})<br>
                                 <small style="color: #888">${f.genre}</small>
                             </div>
                             <button 
-                                onclick="toggleWatched(${index})" 
+                                onclick="toggleWatched('${f.title}')" 
                                 style="padding: 10px 15px; border-radius: 8px; border: none; cursor: pointer; background: ${f.watched ? '#555' : '#4CAF50'}; color: white; font-weight: bold; font-size: 12px;">
                                 ${f.watched ? 'Watched' : 'Watch'}
                             </button>
@@ -411,22 +371,14 @@
             document.getElementById('screen-cabinet').classList.add('active');
         }
 
-        function toggleWatched(index) {
-            const searchInput = document.getElementById('cabinet-search').value.toLowerCase();
-            const favorites = JSON.parse(localStorage.getItem('cineMatch_favs') || '[]');
-            
-            const filtered = favorites.filter(f => 
-                f.title.toLowerCase().includes(searchInput) || 
-                f.genre.toLowerCase().includes(searchInput)
-            );
-
-            const target = filtered[index];
-            const originalIdx = favorites.findIndex(f => f.title === target.title);
-            
-            if (originalIdx !== -1) {
-                favorites[originalIdx].watched = !favorites[originalIdx].watched;
+        function toggleWatched(title) {
+            let favorites = JSON.parse(localStorage.getItem('cineMatch_favs') || '[]');
+            const movie = favorites.find(f => f.title === title);
+            if (movie) {
+                movie.watched = !movie.watched;
                 localStorage.setItem('cineMatch_favs', JSON.stringify(favorites));
-                renderCabinetList();
+                // Перерисовываем кабинет сразу
+                showCabinet(); 
             }
         }
 
