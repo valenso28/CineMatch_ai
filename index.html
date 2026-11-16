@@ -9,7 +9,6 @@
         :root {
             --bg-color: #0f0f0f;
             --card-bg: #1e1e1e;
-            --accent-red: #ff4d4d;
             --accent-green: #4CAF50;
             --text-main: #ffffff;
             --text-dim: #a0a0a0;
@@ -30,15 +29,14 @@
             overflow: hidden;
         }
 
-        /* Контейнер для двух карточек */
         .duel-container {
             display: flex;
-            gap: 15px;
+            gap: 20px;
             width: 95%;
             max-width: 600px;
             justify-content: center;
             align-items: center;
-            height: 500px;
+            height: 450px;
         }
 
         .card {
@@ -46,8 +44,8 @@
             flex: 1;
             height: 100%;
             background: var(--card-bg);
-            border-radius: 20px;
-            padding: 20px;
+            border-radius: 24px;
+            padding: 25px;
             box-sizing: border-box;
             border: 2px solid #333;
             display: flex;
@@ -56,24 +54,33 @@
             align-items: center;
             text-align: center;
             transition: transform var(--transition-speed) ease-out, opacity var(--transition-speed) ease-out;
+            cursor: pointer;
+            user-select: none;
         }
 
-        /* Анимации */
+        /* Эффект при нажатии на карточку */
+        .card:active {
+            transform: scale(0.95);
+            border-color: var(--accent-green);
+        }
+
+        /* Анимации улетания */
         .fly-away {
             transform: translateY(-100px) rotate(20deg) scale(0.8) !important;
             opacity: 0;
+            pointer-events: none;
         }
 
         .genre {
             font-size: 10px;
             text-transform: uppercase;
-            letter-spacing: 1px;
+            letter-spacing: 1.5px;
             color: var(--accent-green);
             margin-bottom: 8px;
         }
 
         .card h2 {
-            font-size: 20px;
+            font-size: 22px;
             margin: 0 0 10px 0;
             color: var(--text-main);
         }
@@ -87,32 +94,8 @@
         .card .description {
             font-size: 13px;
             line-height: 1.4;
-            color: #ccc;
+            color: #ddd;
         }
-
-        .controls {
-            margin-top: 30px;
-            display: flex;
-            gap: 20px;
-        }
-
-        .btn {
-            width: 80px;
-            height: 80px;
-            border-radius: 50%;
-            border: 3px solid white; /* Добавили белый контур для читаемости */
-            font-size: 24px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: transform 0.1s;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-        }
-
-        .btn:active { transform: scale(0.9); }
-        .btn-dislike { background-color: var(--accent-red); }
-        .btn-like { background-color: var(--accent-green); }
 
         .match-overlay {
             position: fixed;
@@ -142,18 +125,14 @@
         <!-- Карточки будут здесь -->
     </div>
 
-    <div class="controls">
-        <button class="btn btn-dislike" onclick="choose(0)" title="Keep Left">⬅️</button>
-        <button class="btn btn-like" onclick="choose(1)" title="Keep Right">➡️</button>
-    </div>
-
     <div class="match-overlay" id="match-overlay">
         <h1>🎬 FINAL CHOICE!</h1>
-        <p id="winner-name"></p>
+        <p>The winner is selected.</p>
         <button onclick="closeMatch()">Start Movie</button>
     </div>
 
     <script>
+        // База данных
         const movies = [
             { title: "Inception", year: "2010", genre: "Sci-Fi", desc: "A thief who steals secrets through dreams." },
             { title: "The Godfather", year: "1972", genre: "Crime", desc: "The aging patriarch of an organized crime dynasty." },
@@ -162,15 +141,17 @@
             { title: "Parasite", year: "2019", genre: "Drama", desc: "Greed and class discrimination in modern Korea." },
             { title: "The Dark Knight", year: "2008", genre: "Action", desc: "Batman faces his greatest challenge against the Joker." },
             { title: "Everything Everywhere", year: "2022", genre: "Adventure", desc: "An extraordinary woman is swept up in a multiversal adventure." },
-            { title: "Pulp Fiction", year: "1993", genre: "Crime", desc: "The lives of two mob hitmen, a boxer, and a pair ofless-than-glamorous criminals." },
+            { title: "Pulp Fiction", year: "1993", genre: "Crime", desc: "The lives of two mob hitmen, a boxer, and a pair of criminals." },
             { title: "Dune", year: "2021", genre: "Sci-Fi", desc: "A noble family thrown into the center of a galactic war." },
-            { title: "Gladiator", year: "2000", genre: "Drama", desc: "A former and glorious general sets out to exact vengeance." }
+            { title: "Gladiator", year: "2000", genre: "Drama", desc: "A former and glorious general sets out to exact vengeance." },
+            { title: "Matrix", year: "1999", genre: "Sci-Fi", desc: "A hacker learns the truth about his reality." },
+            { title: "Titanic", year: "1997", genre: "Drama", desc: "A tragic romance on the ill-fated ship." }
         ];
 
-        let currentIndex = 0;
+        let currentIndex = 0; // Индекс первого фильма в дуэли
         const container = document.getElementById('duel-container');
 
-        function createCard(movie) {
+        function createCardElement(movie) {
             const card = document.createElement('div');
             card.className = 'card';
             card.innerHTML = `
@@ -179,49 +160,53 @@
                 <div class="year">(${movie.year})</div>
                 <div class="description">${movie.desc}</div>
             `;
+            // Добавляем обработчик клика
+            card.onclick = () => handleSelection(card);
             return card;
         }
 
         function renderDuel() {
             container.innerHTML = '';
             
+            // Проверка окончания списка
             if (currentIndex >= movies.length - 1) {
-                container.innerHTML = `<div class="card"><div class="genre">Winner</div><h2>Winner Found!</h2><p>Check your choice.</p></div>`;
+                container.innerHTML = `<div class="card"><div class="genre">Winner</div><h2>No more movies!</h2><p>You've found your match.</p></div>`;
                 return;
             }
 
-            // Создаем две карточки для дуэли
-            const card1 = createCard(movies[currentIndex]);
-            const card2 = createCard(movies[currentIndex + 1]);
+            // Рисуем две карточки
+            const card1 = createCardElement(movies[currentIndex]);
+            const card2 = createCardElement(movies[currentIndex + 1]);
             
             container.appendChild(card1);
             container.appendChild(card2);
         }
 
-        function choose(side) {
-            const cards = container.querySelectorAll('.card');
-            if (cards.length < 2) return;
+        function handleSelection(clickedCard) {
+            const allCards = container.querySelectorAll('.card');
+            // Находим карточку, которая НЕ была нажата
+            const otherCard = Array.from(allCards).find(c => c !== clickedCard);
 
-            const toRemove = (side === 0) ? cards[1] : cards[0];
-            
-            // Анимация улетания той, которую не выбрали
-            toRemove.classList.add('fly-away');
+            if (otherCard) {
+                // Анимируем улет проигравшей карточки
+                otherCard.classList.add('fly-away');
 
-            setTimeout(() => {
-                toRemove.remove();
-                // Логика: если выбрали левую (0), значит правая (1) удалилась.
-                // Но чтобы сохранить дуэль, нам нужно "дозаполнить" пустое место
-                // и подготовить следующую пару.
-                
-                // В нашей системе "Выживания":
-                // Если выбрали Левую, она остается. Нам нужно добавить новый фильм в правую позицию.
-                // Если выбрали Правую, она остается. Нам нужно добавить новый фильм в левую позицию.
-                
-                // Для простоты: мы просто двигаем индекс дальше по списку.
-                // Но так как это "турнир", мы будем просто обновлять дуэль следующими двумя фильмами.
-                currentIndex++;
-                renderDuel();
-            }, 400);
+                // Через время анимации обновляем список
+                setTimeout(() => {
+                    otherCard.remove();
+                    
+                    // Логика "Битвы": 
+                    // Если мы выбрали первый фильм (0), второй (1) улетает.
+                    // Чтобы дуэль продолжилась, мы должны оставить выбранный фильм (0)
+                    // и подтянуть новый фильм в позицию (1).
+                    
+                    // Простая реализация для MVP:
+                    // Мы просто сдвигаем список дальше.
+                    // Если хочешь сложный турнир, здесь нужна будет логика "отсеивания"
+                    currentIndex++;
+                    renderDuel();
+                }, 400);
+            }
         }
 
         function closeMatch() {
