@@ -13,7 +13,7 @@
             --accent-green: #4CAF50;
             --text-main: #ffffff;
             --text-dim: #a0a0a0;
-            --transition-speed: 0.5s;
+            --transition-speed: 0.4s;
         }
 
         body {
@@ -30,7 +30,6 @@
             overflow: hidden;
         }
 
-        /* Контейнер для стопки карточек */
         .card-container {
             position: relative;
             width: 90%;
@@ -39,7 +38,6 @@
             margin-top: 20px;
         }
 
-        /* Стили карточки */
         .card {
             position: absolute;
             width: 100%;
@@ -56,16 +54,23 @@
             align-items: center;
             text-align: center;
             transition: transform var(--transition-speed) ease-out, opacity var(--transition-speed) ease-out;
-            user-select: none;
+            z-index: 10;
         }
 
-        /* Анимация улетания влево */
+        /* Слой "тени" (следующая карточка) */
+        .card-shadow {
+            z-index: 5;
+            transform: scale(0.95) translateY(10px);
+            opacity: 0.6;
+            border-color: #444;
+        }
+
+        /* Анимации свайпа */
         .swipe-left {
             transform: translateX(-150%) rotate(-30deg) !important;
             opacity: 0;
         }
 
-        /* Анимация улетания вправо */
         .swipe-right {
             transform: translateX(150%) rotate(30deg) !important;
             opacity: 0;
@@ -175,12 +180,10 @@
         let currentIndex = 0;
         const container = document.getElementById('card-container');
 
-        // Функция создания новой карточки
-        function createCard(movie) {
+        // Создаем элемент карточки
+        function createCardElement(movie, isShadow = false) {
             const card = document.createElement('div');
-            card.className = 'card';
-            // Добавляем немного случайного смещения по Z для эффекта стопки
-            card.style.zIndex = movies.length - currentIndex;
+            card.className = `card ${isShadow ? 'card-shadow' : ''}`;
             card.innerHTML = `
                 <div class="genre">${movie.genre}</div>
                 <h2>${movie.title}</h2>
@@ -190,23 +193,28 @@
             return card;
         }
 
-        // Инициализация стопки
-        function initStack() {
-            // Рендерим все карточки сразу, но только первую отображаем полностью
-            // Это создает эффект "слоеного пирога"
-            movies.forEach((movie, index) => {
-                const card = createCard(movie);
-                container.appendChild(card);
-                // Все карточки, кроме первой, имеют небольшое смещение
-                if (index > 0) {
-                    card.style.transform = `scale(${1 - (index * 0.03)}) translateY(${index * 5}px)`;
-                    card.style.opacity = 1 - (index * 0.1);
-                }
-            });
+        // Рендерим текущую карточку и карточку "тени"
+        function renderStack() {
+            container.innerHTML = '';
+            
+            if (currentIndex >= movies.length) {
+                container.innerHTML = `<div class="card"><div class="genre">Finished</div><h2>No more movies!</h2><p>You've reached the end.</p></div>`;
+                return;
+            }
+
+            // Карточка тени (следующая за текущей)
+            if (currentIndex + 1 < movies.length) {
+                const shadowCard = createCardElement(movies[currentIndex + 1], true);
+                container.appendChild(shadowCard);
+            }
+
+            // Основная карточка
+            const mainCard = createCardElement(movies[currentIndex], false);
+            container.appendChild(mainCard);
         }
 
         function handleSwipe(direction) {
-            const currentCard = container.querySelector('.card:not(.swipe-left):not(.swipe-right)');
+            const currentCard = container.querySelector('.card:not(.card-shadow)');
             
             if (!currentCard) return;
 
@@ -217,30 +225,24 @@
                 document.getElementById('match-overlay').style.display = 'flex';
             }
 
-            // Удаляем карточку из DOM через небольшую паузу (после анимации)
+            // Удаляем карточку после анимации
             setTimeout(() => {
                 currentCard.remove();
-                updateStack();
-            }, 500);
-        }
-
-        // Обновляем видимость "наслоения"
-        function updateStack() {
-            const cards = container.querySelectorAll('.card');
-            cards.forEach((card, index) => {
-                card.style.transform = `scale(${1 - (index * 0.03)}) translateY(${index * 5}px)`;
-                card.style.opacity = 1 - (index * 0.1);
-            });
+                currentIndex++;
+                renderStack();
+            }, 400);
         }
 
         function closeMatch() {
             document.getElementById('match-overlay').style.display = 'none';
         }
 
+        // Telegram WebApp Setup
         const tg = window.Telegram.WebApp;
         tg.expand();
 
-        initStack();
+        // Start
+        renderStack();
     </script>
 </body>
 </html>
