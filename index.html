@@ -29,6 +29,7 @@
             overflow: hidden;
         }
 
+        /* Screen management */
         .screen {
             display: none;
             width: 100%;
@@ -45,7 +46,7 @@
             display: flex;
         }
 
-        /* Home Screen */
+        /* Home Screen Styles */
         .home-title {
             font-size: 32px;
             margin-bottom: 40px;
@@ -81,9 +82,12 @@
             margin-bottom: 10px;
         }
 
-        .menu-btn:active { transform: scale(0.95); }
+        .menu-btn:active {
+            transform: scale(0.95);
+            background: #333;
+        }
 
-        /* Duel Screen */
+        /* Duel Screen Styles */
         .duel-container {
             display: flex;
             gap: 20px;
@@ -113,15 +117,43 @@
             user-select: none;
         }
 
-        .card:active { transform: scale(0.95); border-color: var(--accent-green); }
-        .fly-away { transform: translateY(-100px) rotate(20deg) scale(0.8) !important; opacity: 0; }
+        .card:active {
+            transform: scale(0.95);
+            border-color: var(--accent-green);
+        }
 
-        .genre { font-size: 10px; text-transform: uppercase; color: var(--accent-green); margin-bottom: 8px; }
-        .card h2 { font-size: 22px; margin: 0 0 10px 0; }
-        .card .year { font-size: 14px; color: var(--text-dim); margin-bottom: 15px; }
-        .card .description { font-size: 13px; line-height: 1.4; color: #ddd; }
+        /* Animations */
+        .fly-away {
+            transform: translateY(-100px) rotate(20deg) scale(0.8) !important;
+            opacity: 0;
+        }
 
-        /* Cabinet */
+        .genre {
+            font-size: 10px;
+            text-transform: uppercase;
+            color: var(--accent-green);
+            margin-bottom: 8px;
+        }
+
+        .card h2 {
+            font-size: 22px;
+            margin: 0 0 10px 0;
+            color: var(--text-main);
+        }
+
+        .card .year {
+            font-size: 14px;
+            color: var(--text-dim);
+            margin-bottom: 15px;
+        }
+
+        .card .description {
+            font-size: 13px;
+            line-height: 1.4;
+            color: #ddd;
+        }
+
+        /* Cabinet Styles */
         .cabinet-list {
             width: 100%;
             max-width: 400px;
@@ -138,6 +170,12 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            animation: fadeIn 0.3s ease forwards;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         #cabinet-search {
@@ -162,6 +200,7 @@
             align-items: center;
             z-index: 100;
         }
+
         .match-overlay h1 { color: var(--accent-green); font-size: 40px; }
         .match-overlay button {
             padding: 15px 30px;
@@ -176,7 +215,7 @@
 </head>
 <body class="tg-app">
 
-    <!-- SCREEN 1: HOME -->
+    <!-- HOME SCREEN -->
     <div id="screen-home" class="screen active">
         <h1 class="home-title">CineMatch AI</h1>
         <div class="menu-grid">
@@ -188,12 +227,12 @@
         </div>
     </div>
 
-    <!-- SCREEN 2: DUEL -->
+    <!-- DUEL SCREEN -->
     <div id="screen-duel" class="screen">
         <div class="duel-container" id="duel-container"></div>
     </div>
 
-    <!-- SCREEN 3: CABINET -->
+    <!-- CABINET SCREEN -->
     <div id="screen-cabinet" class="screen">
         <h2 style="color: var(--accent-green);">My Favorites</h2>
         <input type="text" id="cabinet-search" placeholder="Search movies..." oninput="renderCabinetList()">
@@ -210,6 +249,7 @@
     </div>
 
     <script>
+        // Movie Database
         const movieDatabase = {
             top100: [
                 { title: "The Godfather", year: "1972", genre: "Crime", desc: "The aging patriarch of an organized crime dynasty." },
@@ -308,13 +348,13 @@
             setTimeout(() => {
                 document.getElementById('match-overlay').style.display = 'flex';
                 document.getElementById('winner-name').innerText = movie.title;
-                // Назначаем функцию нажатия кнопке сохранения
                 document.getElementById('save-btn').onclick = () => {
                     saveToFavorites(movie);
                 };
             }, 500);
         }
 
+        // --- CABINET LOGIC ---
         function saveToFavorites(movie) {
             let favorites = JSON.parse(localStorage.getItem('cineMatch_favs') || '[]');
             const exists = favorites.some(f => f.title === movie.title);
@@ -329,70 +369,57 @@
             }
         }
 
-        function closeMatch() {
-            document.getElementById('match-overlay').style.display = 'none';
-            showHome();
-        }
-
-        function showHome() {
-            hideAll();
-            document.getElementById('screen-home').classList.add('active');
-        }
-
         function showCabinet() {
             hideAll();
             const list = document.getElementById('cabinet-list');
             const searchInput = document.getElementById('cabinet-search');
             
-            renderCabinetList();
-            document.getElementById('screen-cabinet').classList.add('active');
-            searchInput.focus();
-        }
-
-        function renderCabinetList() {
-            const list = document.getElementById('cabinet-list');
-            const searchInput = document.getElementById('cabinet-search');
+            list.innerHTML = '';
             const favorites = JSON.parse(localStorage.getItem('cineMatch_favs') || '[]');
             
-            const query = searchInput.value.toLowerCase();
-            const filtered = favorites.filter(f => 
-                f.title.toLowerCase().includes(query) || 
-                f.genre.toLowerCase().includes(query)
-            );
+            function renderList() {
+                const query = searchInput.value.toLowerCase();
+                const filtered = favorites.filter(f => 
+                    f.title.toLowerCase().includes(query) || 
+                    f.genre.toLowerCase().includes(query)
+                );
 
-            // Сортировка: непросмотренные вверх, просмотренные вниз
-            filtered.sort((a, b) => a.watched - b.watched);
+                // Sort: Unwatched first, then Watched
+                filtered.sort((a, b) => a.watched - b.watched);
 
-            if (filtered.length === 0) {
-                list.innerHTML = '<p>No favorites found.</p>';
-            } else {
-                list.innerHTML = filtered.map((f, index) => `
-                    <div class="cabinet-item">
-                        <div style="flex: 1;">
-                            <strong style="color:var(--accent-green)">${f.title}</strong> (${f.year})<br>
-                            <small style="color: #888">${f.genre}</small>
+                if (filtered.length === 0) {
+                    list.innerHTML = '<p style="text-align:center; color:#888; margin-top:20px;">No matches found.</p>';
+                } else {
+                    list.innerHTML = filtered.map((f, index) => `
+                        <div class="cabinet-item">
+                            <div style="flex: 1;">
+                                <strong style="color:var(--accent-green)">${f.title}</strong> (${f.year})<br>
+                                <small style="color: #888">${f.genre}</small>
+                            </div>
+                            <button 
+                                onclick="toggleWatched(${index})" 
+                                style="padding: 10px 15px; border-radius: 8px; border: none; cursor: pointer; background: ${f.watched ? '#555' : '#4CAF50'}; color: white; font-weight: bold; font-size: 12px;">
+                                ${f.watched ? 'Watched' : 'Watch'}
+                            </button>
                         </div>
-                        <button 
-                            onclick="toggleWatched(${index})" 
-                            style="padding: 8px 12px; border-radius: 5px; border: none; cursor: pointer; background: ${f.watched ? '#555' : '#4CAF50'}; color: white;">
-                            ${f.watched ? 'Watched' : 'Watch'}
-                        </button>
-                    </div>
-                `).join('');
+                    `).join('');
+                }
             }
+
+            searchInput.oninput = renderList;
+            renderList();
+            document.getElementById('screen-cabinet').classList.add('active');
         }
 
         function toggleWatched(index) {
             const searchInput = document.getElementById('cabinet-search').value.toLowerCase();
             const favorites = JSON.parse(localStorage.getItem('cineMatch_favs') || '[]');
             
-            // Находим фильтрованный список
             const filtered = favorites.filter(f => 
                 f.title.toLowerCase().includes(searchInput) || 
                 f.genre.toLowerCase().includes(searchInput)
             );
 
-            // Находим фильм в оригинальном массиве по совпадению названия
             const target = filtered[index];
             const originalIdx = favorites.findIndex(f => f.title === target.title);
             
@@ -401,6 +428,16 @@
                 localStorage.setItem('cineMatch_favs', JSON.stringify(favorites));
                 renderCabinetList();
             }
+        }
+
+        function closeMatch() {
+            document.getElementById('match-overlay').style.display = 'none';
+            showHome();
+        }
+
+        function showHome() {
+            hideAll();
+            document.getElementById('screen-home').classList.add('active');
         }
 
         function showDuel(category) {
