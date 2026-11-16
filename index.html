@@ -29,7 +29,6 @@
             overflow: hidden;
         }
 
-        /* Общий стиль для экранов */
         .screen {
             display: none;
             width: 100%;
@@ -46,7 +45,7 @@
             display: flex;
         }
 
-        /* Стартовый экран */
+        /* Home Screen */
         .home-title {
             font-size: 32px;
             margin-bottom: 40px;
@@ -77,17 +76,14 @@
 
         .menu-btn.primary {
             grid-column: span 2;
-            background: linear-gradient(145deg, #2e7d32, #4CAF50);
+            background: linear-gradient(145deg, #2e1d32, #4CAF50);
             border: none;
             margin-bottom: 10px;
         }
 
-        .menu-btn:active {
-            transform: scale(0.95);
-            background: #333;
-        }
+        .menu-btn:active { transform: scale(0.95); }
 
-        /* Турнирный экран (наш старый движок) */
+        /* Duel Screen */
         .duel-container {
             display: flex;
             gap: 20px;
@@ -125,7 +121,7 @@
         .card .year { font-size: 14px; color: var(--text-dim); margin-bottom: 15px; }
         .card .description { font-size: 13px; line-height: 1.4; color: #ddd; }
 
-        /* Личный кабинет */
+        /* Cabinet */
         .cabinet-list {
             width: 100%;
             max-width: 400px;
@@ -139,25 +135,23 @@
             border-radius: 10px;
             margin-bottom: 10px;
             border: 1px solid #333;
-        }
-
-        /* Навигационная панель */
-        .nav-bar {
-            position: fixed;
-            bottom: 20px;
             display: flex;
-            gap: 10px;
+            justify-content: space-between;
+            align-items: center;
         }
 
-        .nav-btn {
-            padding: 10px 20px;
-            background: rgba(255,255,255,0.1);
-            border: 1px solid white;
+        #cabinet-search {
+            width: 80%;
+            padding: 12px;
+            border-radius: 10px;
+            border: 1px solid #444;
+            background: #222;
             color: white;
-            border-radius: 20px;
-            cursor: pointer;
+            margin-bottom: 20px;
+            outline: none;
         }
 
+        /* Overlay */
         .match-overlay {
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -169,12 +163,20 @@
             z-index: 100;
         }
         .match-overlay h1 { color: var(--accent-green); font-size: 40px; }
-        .match-overlay button { padding: 12px 30px; border-radius: 20px; border: none; background: white; cursor: pointer; font-weight: bold; }
+        .match-overlay button {
+            padding: 15px 30px;
+            border-radius: 20px;
+            border: none;
+            background: white;
+            font-weight: bold;
+            margin: 10px;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body class="tg-app">
 
-    <!-- ЭКРАН 1: ДОМ -->
+    <!-- SCREEN 1: HOME -->
     <div id="screen-home" class="screen active">
         <h1 class="home-title">CineMatch AI</h1>
         <div class="menu-grid">
@@ -186,29 +188,28 @@
         </div>
     </div>
 
-    <!-- ЭКРАН 2: ТУРНИР -->
+    <!-- SCREEN 2: DUEL -->
     <div id="screen-duel" class="screen">
         <div class="duel-container" id="duel-container"></div>
     </div>
 
-    <!-- ЭКРАН 3: КАБИНЕТ -->
-    <!-- ЛИЧНЫЙ КАБИНЕТ (Обновленный) -->
+    <!-- SCREEN 3: CABINET -->
     <div id="screen-cabinet" class="screen">
         <h2 style="color: var(--accent-green);">My Favorites</h2>
-        
-        <!-- Поле поиска -->
-        <input type="text" id="cabinet-search" placeholder="Search movies..." 
-               style="width: 80%; padding: 12px; border-radius: 10px; border: 1px solid #444; background: #222; color: white; margin-bottom: 20px; outline: none;">
-        
-        <div class="cabinet-list" id="cabinet-list">
-            <!-- Список генерируется динамически -->
-        </div>
-        
+        <input type="text" id="cabinet-search" placeholder="Search movies..." oninput="renderCabinetList()">
+        <div class="cabinet-list" id="cabinet-list"></div>
         <button class="menu-btn" style="margin-top: 20px;" onclick="showHome()">Back Home</button>
     </div>
 
+    <!-- OVERLAY -->
+    <div class="match-overlay" id="match-overlay">
+        <h1>🎬 FINAL CHOICE!</h1>
+        <p id="winner-name"></p>
+        <button id="save-btn">❤️ Save to Favorites</button>
+        <button onclick="closeMatch()">Skip</button>
+    </div>
+
     <script>
-        // База данных (оставляем твою существующую базу здесь)
         const movieDatabase = {
             top100: [
                 { title: "The Godfather", year: "1972", genre: "Crime", desc: "The aging patriarch of an organized crime dynasty." },
@@ -307,99 +308,24 @@
             setTimeout(() => {
                 document.getElementById('match-overlay').style.display = 'flex';
                 document.getElementById('winner-name').innerText = movie.title;
+                // Назначаем функцию нажатия кнопке сохранения
                 document.getElementById('save-btn').onclick = () => {
                     saveToFavorites(movie);
                 };
             }, 500);
         }
 
-        // СОХРАНЕНИЕ В ИЗБРАННОЕ
         function saveToFavorites(movie) {
             let favorites = JSON.parse(localStorage.getItem('cineMatch_favs') || '[]');
             const exists = favorites.some(f => f.title === movie.title);
             
             if (!exists) {
-                // Добавляем флаг watched по умолчанию как false
                 favorites.push({ ...movie, watched: false });
                 localStorage.setItem('cineMatch_favs', JSON.stringify(favorites));
-                alert("Added to your favorites!");
-                showCabinet(); // Сразу переходим в кабинет
-            } else {
-                alert("Already in your favorites!");
-            }
-        }
-
-        // Отображение кабинета с поиском и сортировкой
-        function showCabinet() {
-            hideAll();
-            const list = document.getElementById('cabinet-list');
-            const searchInput = document.getElementById('cabinet-search');
-            
-            // Сначала очищаем список
-            list.innerHTML = '';
-
-            const favorites = JSON.parse(localStorage.getItem('cineMatch_favs') || '[]');
-            
-            function renderList() {
-                const query = searchInput.value.toLowerCase();
-                
-                // Фильтруем по поиску
-                const filtered = favorites.filter(f => 
-                    f.title.toLowerCase().includes(query) || 
-                    f.genre.toLowerCase().includes(query)
-                );
-
-                // Сортируем: Непросмотренные (watched: false) идут первыми, Просмотренные (watched: true) вниз
-                filtered.sort((a, b) => a.watched - b.watched);
-
-                if (filtered.length === 0) {
-                    list.innerHTML = '<p>No matches found.</p>';
-                } else {
-                    list.innerHTML = filtered.map((f, index) => `
-                        <div class="cabinet-item" style="display: flex; justify-content: space-between; align-items: center;">
-                            <div style="flex: 1;">
-                                <strong style="color:var(--accent-green)">${f.title}</strong> (${f.year})<br>
-                                <small style="color: #888">${f.genre}</small>
-                            </div>
-                            <button 
-                                onclick="toggleWatched(${index})" 
-                                style="padding: 8px 12px; border-radius: 5px; border: none; cursor: pointer; background: ${f.watched ? '#555' : '#4CAF50'}; color: white;">
-                                ${f.watched ? 'Watched' : 'Watch'}
-                            </button>
-                        </div>
-                    `).join('');
-                }
-            }
-
-            // Слушатель поиска
-            searchInput.oninput = renderList;
-            
-            // Инициализация первого отображения
-            renderList();
-            document.getElementById('screen-cabinet').classList.add('active');
-        }
-
-        // Переключение статуса "Просмотрено"
-        function toggleWatched(index) {
-            let favorites = JSON.parse(localStorage.getItem('cineMatch_favs') || '[]');
-            
-            // Важно: так как мы фильтруем список, нам нужно найти индекс именно в массиве favorites
-            const query = document.getElementById('cabinet-search').value.toLowerCase();
-            const filtered = favorites.filter(f => 
-                f.title.toLowerCase().includes(query) || 
-                f.genre.toLowerCase().includes(query)
-            );
-
-            // Находим нужный фильм по совпадению в отфильтрованном списке
-            // Нам нужно найти его в оригинальном массиве favorites
-            const target = filtered[index];
-            const originalIdx = favorites.findIndex(f => f.title === target.title);
-            
-            if (originalIdx !== -1) {
-                favorites[originalIdx].watched = !favorites[originalIdx].watched;
-                localStorage.setItem('cineMatch_favs', JSON.stringify(favorites));
-                // Перерисовываем кабинет
+                alert("Saved to favorites!");
                 showCabinet(); 
+            } else {
+                alert("Already in favorites!");
             }
         }
 
@@ -411,6 +337,70 @@
         function showHome() {
             hideAll();
             document.getElementById('screen-home').classList.add('active');
+        }
+
+        function showCabinet() {
+            hideAll();
+            const list = document.getElementById('cabinet-list');
+            const searchInput = document.getElementById('cabinet-search');
+            
+            renderCabinetList();
+            document.getElementById('screen-cabinet').classList.add('active');
+            searchInput.focus();
+        }
+
+        function renderCabinetList() {
+            const list = document.getElementById('cabinet-list');
+            const searchInput = document.getElementById('cabinet-search');
+            const favorites = JSON.parse(localStorage.getItem('cineMatch_favs') || '[]');
+            
+            const query = searchInput.value.toLowerCase();
+            const filtered = favorites.filter(f => 
+                f.title.toLowerCase().includes(query) || 
+                f.genre.toLowerCase().includes(query)
+            );
+
+            // Сортировка: непросмотренные вверх, просмотренные вниз
+            filtered.sort((a, b) => a.watched - b.watched);
+
+            if (filtered.length === 0) {
+                list.innerHTML = '<p>No favorites found.</p>';
+            } else {
+                list.innerHTML = filtered.map((f, index) => `
+                    <div class="cabinet-item">
+                        <div style="flex: 1;">
+                            <strong style="color:var(--accent-green)">${f.title}</strong> (${f.year})<br>
+                            <small style="color: #888">${f.genre}</small>
+                        </div>
+                        <button 
+                            onclick="toggleWatched(${index})" 
+                            style="padding: 8px 12px; border-radius: 5px; border: none; cursor: pointer; background: ${f.watched ? '#555' : '#4CAF50'}; color: white;">
+                            ${f.watched ? 'Watched' : 'Watch'}
+                        </button>
+                    </div>
+                `).join('');
+            }
+        }
+
+        function toggleWatched(index) {
+            const searchInput = document.getElementById('cabinet-search').value.toLowerCase();
+            const favorites = JSON.parse(localStorage.getItem('cineMatch_favs') || '[]');
+            
+            // Находим фильтрованный список
+            const filtered = favorites.filter(f => 
+                f.title.toLowerCase().includes(searchInput) || 
+                f.genre.toLowerCase().includes(searchInput)
+            );
+
+            // Находим фильм в оригинальном массиве по совпадению названия
+            const target = filtered[index];
+            const originalIdx = favorites.findIndex(f => f.title === target.title);
+            
+            if (originalIdx !== -1) {
+                favorites[originalIdx].watched = !favorites[originalIdx].watched;
+                localStorage.setItem('cineMatch_favs', JSON.stringify(favorites));
+                renderCabinetList();
+            }
         }
 
         function showDuel(category) {
@@ -441,8 +431,5 @@
 
         showHome();
     </script>
-
-
-
 </body>
 </html>
