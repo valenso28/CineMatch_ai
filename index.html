@@ -80,7 +80,12 @@
             margin-bottom: 10px;
         }
 
-        .menu-btn:active {
+        .menu-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .menu-btn:active:not(:disabled) {
             transform: scale(0.95);
             background: #333;
         }
@@ -211,7 +216,7 @@
     <!-- HOME SCREEN -->
     <div id="screen-home" class="screen active">
         <h1 class="home-title">CineMatch AI</h1>
-        <div class="menu-grid">
+        <div class="menu-grid" id="menu-grid">
             <button class="menu-btn primary" onclick="showDuel('top100')">🏆 Top 100 of 20th Century</button>
             <button class="menu-btn" onclick="showDuel('drama')">🎭 Drama</button>
             <button class="menu-btn" onclick="showDuel('scifi')">🚀 Sci-Fi</button>
@@ -257,12 +262,16 @@
             try {
                 const response = await fetch('./movies.json');
                 movieDatabase = await response.json();
+                console.log("Database Loaded:", movieDatabase);
                 
-                // После загрузки данных показываем главный экран
+                // Only enable buttons after data is ready
+                const buttons = document.querySelectorAll('.menu-btn');
+                buttons.forEach(btn => btn.disabled = false);
+                
                 showHome();
             } catch (error) {
                 console.error("Error loading movies:", error);
-                container.innerHTML = "<p>Error loading database.</p>";
+                container.innerHTML = "<p>Error loading database. Please check if movies.json exists.</p>";
             }
         }
 
@@ -314,6 +323,13 @@
 
         function showDuel(category) {
             hideAll();
+            
+            if (!movieDatabase[category]) {
+                alert("Category not found!");
+                showHome();
+                return;
+            }
+
             currentPool = [...movieDatabase[category]];
             poolIndex = 0;
             
@@ -321,10 +337,14 @@
                 currentWinner = currentPool[0];
                 currentChallenger = currentPool[1];
                 currentPool.splice(0, 2);
-            } else {
+            } else if (currentPool.length === 1) {
                 currentWinner = currentPool[0];
-                currentChallenger = currentPool[1] || currentPool[0];
+                currentChallenger = null; // Handle small lists
                 currentPool = [];
+            } else {
+                alert("Not enough movies in this category.");
+                showHome();
+                return;
             }
 
             renderDuel();
@@ -333,6 +353,7 @@
 
         function renderDuel() {
             container.innerHTML = '';
+            
             if (currentWinner && currentChallenger) {
                 const c1 = createCardElement(currentWinner);
                 const c2 = createCardElement(currentChallenger);
@@ -366,6 +387,15 @@
                         }
                     }, 400);
                 };
+            } else if (currentWinner) {
+                // Handle case where only one movie remains
+                container.innerHTML = `<div class="card"><div class="genre">Winner</div><h2>${currentWinner.title}</h2><p>You've found your match!</p></div>`;
+                setTimeout(() => {
+                    document.getElementById('match-overlay').style.display = 'flex';
+                    document.getElementById('winner-name').innerText = currentWinner.title;
+                }, 500);
+            } else {
+                container.innerHTML = "<p>No movies found in this category.</p>";
             }
         }
 
@@ -410,6 +440,7 @@
             const searchInput = document.getElementById('cabinet-search');
             const favorites = JSON.parse(localStorage.getItem('cineMatch_favs') || '[]');
             const query = searchInput.value.toLowerCase();
+            
             const filtered = favorites.filter(f => 
                 f.title.toLowerCase().includes(query) || 
                 f.genre.toLowerCase().includes(query)
@@ -430,8 +461,8 @@
             const searchInput = document.getElementById('cabinet-search');
             list.innerHTML = '';
             const favorites = JSON.parse(localStorage.getItem('cineMatch_favs') || '[]');
-            const query = searchInput.value.toLowerCase();
             
+            const query = searchInput.value.toLowerCase();
             const filtered = favorites.filter(f => 
                 f.title.toLowerCase().includes(query) || 
                 f.genre.toLowerCase().includes(query)
@@ -442,7 +473,7 @@
             if (filtered.length === 0) {
                 list.innerHTML = '<p style="text-align:center; color:#888; margin-top:20px;">No matches found.</p>';
             } else {
-                list.innerHTML = filtered.map((f) => `
+                list.innerHTML = filtered.map((f, index) => `
                     <div class="cabinet-item">
                         <div style="flex: 1;">
                             <strong style="color:var(--accent-green)">${f.title}</strong> (${f.year})<br>
@@ -462,6 +493,11 @@
             showHome();
         }
 
+        function showHome() {
+            hideAll();
+            document.getElementById('screen-home').classList.add('active');
+        }
+
         function hideAll() {
             document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
         }
@@ -469,7 +505,6 @@
         const tg = window.Telegram.WebApp;
         tg.expand();
 
-        // Запуск приложения
         initApp();
     </script>
 </body>
