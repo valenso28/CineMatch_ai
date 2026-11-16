@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CineMatch AI</title>
+    <title>CineMatch AI - Duel Mode</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         :root {
@@ -30,96 +30,84 @@
             overflow: hidden;
         }
 
-        .card-container {
-            position: relative;
-            width: 90%;
-            max-width: 350px;
+        /* Контейнер для двух карточек */
+        .duel-container {
+            display: flex;
+            gap: 15px;
+            width: 95%;
+            max-width: 600px;
+            justify-content: center;
+            align-items: center;
             height: 500px;
-            margin-top: 20px;
         }
 
         .card {
-            position: absolute;
-            width: 100%;
+            position: relative;
+            flex: 1;
             height: 100%;
             background: var(--card-bg);
-            border-radius: 24px;
-            padding: 30px;
+            border-radius: 20px;
+            padding: 20px;
             box-sizing: border-box;
-            border: 1px solid #333;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            border: 2px solid #333;
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
             text-align: center;
             transition: transform var(--transition-speed) ease-out, opacity var(--transition-speed) ease-out;
-            z-index: 10;
         }
 
-        /* Слой "тени" (следующая карточка) */
-        .card-shadow {
-            z-index: 5;
-            transform: scale(0.95) translateY(10px);
-            opacity: 0.6;
-            border-color: #444;
-        }
-
-        /* Анимации свайпа */
-        .swipe-left {
-            transform: translateX(-150%) rotate(-30deg) !important;
-            opacity: 0;
-        }
-
-        .swipe-right {
-            transform: translateX(150%) rotate(30deg) !important;
+        /* Анимации */
+        .fly-away {
+            transform: translateY(-100px) rotate(20deg) scale(0.8) !important;
             opacity: 0;
         }
 
         .genre {
-            font-size: 12px;
+            font-size: 10px;
             text-transform: uppercase;
-            letter-spacing: 1.5px;
+            letter-spacing: 1px;
             color: var(--accent-green);
-            margin-bottom: 10px;
+            margin-bottom: 8px;
         }
 
         .card h2 {
-            font-size: 28px;
+            font-size: 20px;
             margin: 0 0 10px 0;
             color: var(--text-main);
         }
 
         .card .year {
-            font-size: 16px;
+            font-size: 14px;
             color: var(--text-dim);
-            margin-bottom: 20px;
+            margin-bottom: 15px;
         }
 
         .card .description {
-            font-size: 15px;
-            line-height: 1.5;
-            color: #ddd;
+            font-size: 13px;
+            line-height: 1.4;
+            color: #ccc;
         }
 
         .controls {
             margin-top: 30px;
             display: flex;
-            gap: 40px;
+            gap: 20px;
         }
 
         .btn {
-            width: 70px;
-            height: 70px;
+            width: 80px;
+            height: 80px;
             border-radius: 50%;
-            border: none;
-            font-size: 28px;
+            border: 3px solid white; /* Добавили белый контур для читаемости */
+            font-size: 24px;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
             transition: transform 0.1s;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
         }
 
         .btn:active { transform: scale(0.9); }
@@ -137,8 +125,7 @@
             z-index: 100;
         }
 
-        .match-overlay h1 { color: var(--accent-green); font-size: 40px; margin-bottom: 10px; }
-        .match-overlay p { font-size: 18px; margin-bottom: 30px; }
+        .match-overlay h1 { color: var(--accent-green); font-size: 40px; }
         .match-overlay button {
             padding: 12px 30px;
             border-radius: 20px;
@@ -151,39 +138,41 @@
 </head>
 <body class="tg-app">
 
-    <div class="card-container" id="card-container">
+    <div class="duel-container" id="duel-container">
         <!-- Карточки будут здесь -->
     </div>
 
     <div class="controls">
-        <button class="btn btn-dislike" onclick="handleSwipe('left')">❌</button>
-        <button class="btn btn-like" onclick="handleSwipe('right')">❤️</button>
+        <button class="btn btn-dislike" onclick="choose(0)" title="Keep Left">⬅️</button>
+        <button class="btn btn-like" onclick="choose(1)" title="Keep Right">➡️</button>
     </div>
 
     <div class="match-overlay" id="match-overlay">
-        <h1>🎬 IT'S A MATCH!</h1>
-        <p>Added to your potential watchlist</p>
-        <button onclick="closeMatch()">Continue</button>
+        <h1>🎬 FINAL CHOICE!</h1>
+        <p id="winner-name"></p>
+        <button onclick="closeMatch()">Start Movie</button>
     </div>
 
     <script>
         const movies = [
-            { title: "Inception", year: "2010", genre: "Sci-Fi", desc: "A thief who steals secrets through dreams puts the security of your own mind at risk." },
-            { title: "The Godfather", year: "1972", genre: "Crime", desc: "The aging patriarch of an organized crime dynasty transfers control to his son." },
-            { title: "Spirited Away", year: "2001", genre: "Animation", desc: "A young girl wanders into a world ruled by gods, spirits, and monsters." },
-            { title: "Interstellar", year: "2014", genre: "Sci-Fi", desc: "A team of explorers travel through a wormhole in space in search of a new home for humanity." },
-            { title: "Parasite", year: "2019", genre: "Drama", desc: "Greed and class discrimination collide in this dark comedy-thriller." },
-            { title: "The Dark Knight", year: "2008", genre: "Action", desc: "Batman faces his greatest psychological challenge against the Joker." },
-            { title: "Everything Everywhere All At Once", year: "2022", genre: "Adventure", desc: "An extraordinary woman is swept up in a multiversal adventure." }
+            { title: "Inception", year: "2010", genre: "Sci-Fi", desc: "A thief who steals secrets through dreams." },
+            { title: "The Godfather", year: "1972", genre: "Crime", desc: "The aging patriarch of an organized crime dynasty." },
+            { title: "Spirited Away", year: "2001", genre: "Animation", desc: "A girl wanders into a world of spirits." },
+            { title: "Interstellar", year: "2014", genre: "Sci-Fi", desc: "A team of explorers travel through a wormhole." },
+            { title: "Parasite", year: "2019", genre: "Drama", desc: "Greed and class discrimination in modern Korea." },
+            { title: "The Dark Knight", year: "2008", genre: "Action", desc: "Batman faces his greatest challenge against the Joker." },
+            { title: "Everything Everywhere", year: "2022", genre: "Adventure", desc: "An extraordinary woman is swept up in a multiversal adventure." },
+            { title: "Pulp Fiction", year: "1993", genre: "Crime", desc: "The lives of two mob hitmen, a boxer, and a pair ofless-than-glamorous criminals." },
+            { title: "Dune", year: "2021", genre: "Sci-Fi", desc: "A noble family thrown into the center of a galactic war." },
+            { title: "Gladiator", year: "2000", genre: "Drama", desc: "A former and glorious general sets out to exact vengeance." }
         ];
 
         let currentIndex = 0;
-        const container = document.getElementById('card-container');
+        const container = document.getElementById('duel-container');
 
-        // Создаем элемент карточки
-        function createCardElement(movie, isShadow = false) {
+        function createCard(movie) {
             const card = document.createElement('div');
-            card.className = `card ${isShadow ? 'card-shadow' : ''}`;
+            card.className = 'card';
             card.innerHTML = `
                 <div class="genre">${movie.genre}</div>
                 <h2>${movie.title}</h2>
@@ -193,43 +182,45 @@
             return card;
         }
 
-        // Рендерим текущую карточку и карточку "тени"
-        function renderStack() {
+        function renderDuel() {
             container.innerHTML = '';
             
-            if (currentIndex >= movies.length) {
-                container.innerHTML = `<div class="card"><div class="genre">Finished</div><h2>No more movies!</h2><p>You've reached the end.</p></div>`;
+            if (currentIndex >= movies.length - 1) {
+                container.innerHTML = `<div class="card"><div class="genre">Winner</div><h2>Winner Found!</h2><p>Check your choice.</p></div>`;
                 return;
             }
 
-            // Карточка тени (следующая за текущей)
-            if (currentIndex + 1 < movies.length) {
-                const shadowCard = createCardElement(movies[currentIndex + 1], true);
-                container.appendChild(shadowCard);
-            }
-
-            // Основная карточка
-            const mainCard = createCardElement(movies[currentIndex], false);
-            container.appendChild(mainCard);
+            // Создаем две карточки для дуэли
+            const card1 = createCard(movies[currentIndex]);
+            const card2 = createCard(movies[currentIndex + 1]);
+            
+            container.appendChild(card1);
+            container.appendChild(card2);
         }
 
-        function handleSwipe(direction) {
-            const currentCard = container.querySelector('.card:not(.card-shadow)');
+        function choose(side) {
+            const cards = container.querySelectorAll('.card');
+            if (cards.length < 2) return;
+
+            const toRemove = (side === 0) ? cards[1] : cards[0];
             
-            if (!currentCard) return;
+            // Анимация улетания той, которую не выбрали
+            toRemove.classList.add('fly-away');
 
-            if (direction === 'left') {
-                currentCard.classList.add('swipe-left');
-            } else {
-                currentCard.classList.add('swipe-right');
-                document.getElementById('match-overlay').style.display = 'flex';
-            }
-
-            // Удаляем карточку после анимации
             setTimeout(() => {
-                currentCard.remove();
+                toRemove.remove();
+                // Логика: если выбрали левую (0), значит правая (1) удалилась.
+                // Но чтобы сохранить дуэль, нам нужно "дозаполнить" пустое место
+                // и подготовить следующую пару.
+                
+                // В нашей системе "Выживания":
+                // Если выбрали Левую, она остается. Нам нужно добавить новый фильм в правую позицию.
+                // Если выбрали Правую, она остается. Нам нужно добавить новый фильм в левую позицию.
+                
+                // Для простоты: мы просто двигаем индекс дальше по списку.
+                // Но так как это "турнир", мы будем просто обновлять дуэль следующими двумя фильмами.
                 currentIndex++;
-                renderStack();
+                renderDuel();
             }, 400);
         }
 
@@ -237,12 +228,10 @@
             document.getElementById('match-overlay').style.display = 'none';
         }
 
-        // Telegram WebApp Setup
         const tg = window.Telegram.WebApp;
         tg.expand();
 
-        // Start
-        renderStack();
+        renderDuel();
     </script>
 </body>
 </html>
