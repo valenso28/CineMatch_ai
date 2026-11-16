@@ -12,7 +12,8 @@
             --accent-red: #ff4d4d;
             --accent-green: #4CAF50;
             --text-main: #ffffff;
-            --text-dim: #b0b0b0;
+            --text-dim: #a0a0a0;
+            --transition-speed: 0.5s;
         }
 
         body {
@@ -29,17 +30,18 @@
             overflow: hidden;
         }
 
+        /* Контейнер для стопки карточек */
         .card-container {
+            position: relative;
             width: 90%;
             max-width: 350px;
             height: 500px;
-            perspective: 1000px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
+            margin-top: 20px;
         }
 
+        /* Стили карточки */
         .card {
+            position: absolute;
             width: 100%;
             height: 100%;
             background: var(--card-bg);
@@ -47,13 +49,26 @@
             padding: 30px;
             box-sizing: border-box;
             border: 1px solid #333;
-            box-shadow: 0 15px 35px rgba(0,0,0,0.8);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
             text-align: center;
-            transition: transform 0.3s ease, opacity 0.3s ease;
+            transition: transform var(--transition-speed) ease-out, opacity var(--transition-speed) ease-out;
+            user-select: none;
+        }
+
+        /* Анимация улетания влево */
+        .swipe-left {
+            transform: translateX(-150%) rotate(-30deg) !important;
+            opacity: 0;
+        }
+
+        /* Анимация улетания вправо */
+        .swipe-right {
+            transform: translateX(150%) rotate(30deg) !important;
+            opacity: 0;
         }
 
         .genre {
@@ -85,7 +100,7 @@
         .controls {
             margin-top: 30px;
             display: flex;
-            gap: 50px;
+            gap: 40px;
         }
 
         .btn {
@@ -117,28 +132,36 @@
             z-index: 100;
         }
 
-        .match-overlay h1 { color: var(--accent-green); font-size: 40px; }
+        .match-overlay h1 { color: var(--accent-green); font-size: 40px; margin-bottom: 10px; }
+        .match-overlay p { font-size: 18px; margin-bottom: 30px; }
+        .match-overlay button {
+            padding: 12px 30px;
+            border-radius: 20px;
+            border: none;
+            background: white;
+            cursor: pointer;
+            font-weight: bold;
+        }
     </style>
 </head>
-<body>
+<body class="tg-app">
 
     <div class="card-container" id="card-container">
-        <!-- Карточка будет вставляться сюда -->
+        <!-- Карточки будут здесь -->
     </div>
 
     <div class="controls">
-        <button class="btn btn-dislike" onclick="swipeLeft()">❌</button>
-        <button class="btn btn-like" onclick="swipeRight()">❤️</button>
+        <button class="btn btn-dislike" onclick="handleSwipe('left')">❌</button>
+        <button class="btn btn-like" onclick="handleSwipe('right')">❤️</button>
     </div>
 
     <div class="match-overlay" id="match-overlay">
         <h1>🎬 IT'S A MATCH!</h1>
         <p>Added to your potential watchlist</p>
-        <button onclick="closeMatch()" style="padding: 12px 30px; border-radius: 20px; border: none; background: white; cursor: pointer; font-weight: bold;">Continue</button>
+        <button onclick="closeMatch()">Continue</button>
     </div>
 
     <script>
-        // Наша база данных (в будущем мы заменим это на API запрос)
         const movies = [
             { title: "Inception", year: "2010", genre: "Sci-Fi", desc: "A thief who steals secrets through dreams puts the security of your own mind at risk." },
             { title: "The Godfather", year: "1972", genre: "Crime", desc: "The aging patriarch of an organized crime dynasty transfers control to his son." },
@@ -152,61 +175,72 @@
         let currentIndex = 0;
         const container = document.getElementById('card-container');
 
-        // Функция отрисовки новой карточки
-        function renderCard() {
-            // Очищаем контейнер
-            container.innerHTML = '';
-
-            if (currentIndex >= movies.length) {
-                container.innerHTML = `
-                    <div class="card">
-                        <div class="genre">Finished</div>
-                        <h2>No more movies!</h2>
-                        <p>You've reached the end of the current list.</p>
-                    </div>`;
-                return;
-            }
-
-            const movie = movies[currentIndex];
-
-            // Создаем элемент карточки
+        // Функция создания новой карточки
+        function createCard(movie) {
             const card = document.createElement('div');
             card.className = 'card';
-            
-            // Используем шаблонную строку для вставки данных
+            // Добавляем немного случайного смещения по Z для эффекта стопки
+            card.style.zIndex = movies.length - currentIndex;
             card.innerHTML = `
                 <div class="genre">${movie.genre}</div>
                 <h2>${movie.title}</h2>
                 <div class="year">(${movie.year})</div>
                 <div class="description">${movie.desc}</div>
             `;
+            return card;
+        }
+
+        // Инициализация стопки
+        function initStack() {
+            // Рендерим все карточки сразу, но только первую отображаем полностью
+            // Это создает эффект "слоеного пирога"
+            movies.forEach((movie, index) => {
+                const card = createCard(movie);
+                container.appendChild(card);
+                // Все карточки, кроме первой, имеют небольшое смещение
+                if (index > 0) {
+                    card.style.transform = `scale(${1 - (index * 0.03)}) translateY(${index * 5}px)`;
+                    card.style.opacity = 1 - (index * 0.1);
+                }
+            });
+        }
+
+        function handleSwipe(direction) {
+            const currentCard = container.querySelector('.card:not(.swipe-left):not(.swipe-right)');
             
-            container.appendChild(card);
+            if (!currentCard) return;
+
+            if (direction === 'left') {
+                currentCard.classList.add('swipe-left');
+            } else {
+                currentCard.classList.add('swipe-right');
+                document.getElementById('match-overlay').style.display = 'flex';
+            }
+
+            // Удаляем карточку из DOM через небольшую паузу (после анимации)
+            setTimeout(() => {
+                currentCard.remove();
+                updateStack();
+            }, 500);
         }
 
-        // Логика кнопок
-        function swipeLeft() {
-            currentIndex++;
-            renderCard();
-        }
-
-        function swipeRight() {
-            const overlay = document.getElementById('match-overlay');
-            overlay.style.display = 'flex';
+        // Обновляем видимость "наслоения"
+        function updateStack() {
+            const cards = container.querySelectorAll('.card');
+            cards.forEach((card, index) => {
+                card.style.transform = `scale(${1 - (index * 0.03)}) translateY(${index * 5}px)`;
+                card.style.opacity = 1 - (index * 0.1);
+            });
         }
 
         function closeMatch() {
             document.getElementById('match-overlay').style.display = 'none';
-            currentIndex++;
-            renderCard();
         }
 
-        // Инициализация Telegram Web App
         const tg = window.Telegram.WebApp;
-        tg.expand(); // Развернуть на весь экран телефона
+        tg.expand();
 
-        // Первая отрисовка при загрузке
-        renderCard();
+        initStack();
     </script>
 </body>
 </html>
