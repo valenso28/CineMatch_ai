@@ -407,30 +407,44 @@
 
         function showDuel(category) {
             hideAll();
-            const data = movieDatabase[category];
             
-            if (!data || data.length === 0) {
-                alert("No movies found in this category!");
+            // Проверка на наличие данных
+            if (!movieDatabase || Object.keys(movieDatabase).length === 0) {
+                alert("Database is empty. Please refresh the page.");
                 showHome();
                 return;
             }
 
-            currentPool = [...data];
-            poolIndex = 0;
+            // Умная проверка: превращаем категорию из кнопки в нижний регистр (например, "Drama" -> "drama")
+            // И проверяем, есть ли такая категория в базе
+            let lowerCategory = category.toLowerCase();
             
-            if (currentPool.length >= 2) {
-                currentWinner = currentPool[0];
-                currentChallenger = currentPool[1];
-                currentPool.splice(0, 2);
-            } else {
-                currentWinner = currentPool[0];
-                currentChallenger = currentPool[1] || currentPool[0];
-                currentPool = [];
-            }
+            // Ищем в базе ключ, который совпадает с названием категории после приведения к нижнему регистру
+            let foundKey = Object.keys(movieDatabase).find(key => key.toLowerCase() === lowerCategory);
 
-            renderDuel();
-            document.getElementById('screen-duel').classList.add('active');
+            if (foundKey) {
+                currentPool = [...movieDatabase[foundKey]];
+                poolIndex = 0;
+                
+                if (currentPool.length >= 2) {
+                    currentWinner = currentPool[0];
+                    currentChallenger = currentPool[1];
+                    currentPool.splice(0, 2);
+                } else {
+                    currentWinner = currentPool[0];
+                    currentChallenger = currentPool[1] || currentPool[0];
+                    currentPool = [];
+                }
+
+                renderDuel();
+                document.getElementById('screen-duel').classList.add('active');
+            } else {
+                console.error("Category not found in database_ keys:", Object.keys(movieDatabase));
+                alert("Category '" + category + "' not found. Available: " + Object.keys(movieDatabase).join(', '));
+                showHome();
+            }
         }
+
 
         function renderDuel() {
             container.innerHTML = '';
