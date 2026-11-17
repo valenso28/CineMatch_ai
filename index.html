@@ -87,6 +87,7 @@
             background: #333;
         }
 
+        /* DUEL SCREEN STYLES */
         .duel-container {
             display: flex;
             gap: 20px;
@@ -102,7 +103,7 @@
             flex: 1;
             height: 100%;
             background: var(--card-bg);
-            border-radius:-24px;
+            border-radius: 24px;
             padding: 25px;
             box-sizing: border-box;
             border: 2px solid #333;
@@ -151,7 +152,7 @@
             color: #ddd;
         }
 
-        /* CABINET STYLES - FIXED VERTICAL LAYOUT */
+        /* CABINET STYLES (FIXED VERTICAL) */
         .cabinet-list {
             width: 100%;
             max-width: 400px;
@@ -167,7 +168,8 @@
             border-radius: 15px;
             border: 1px solid #333;
             display: flex;
-            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
             gap: 10px;
             animation: fadeIn 0.3s ease forwards;
         }
@@ -188,10 +190,9 @@
             outline: none;
         }
 
-        .cabinet-actions {
+        .btn-action-group {
             display: flex;
-            gap: 10px;
-            justify-content: flex-end;
+            gap: 8px;
         }
 
         .btn-watch {
@@ -251,6 +252,7 @@
 </head>
 <body class="tg-app">
 
+    <!-- HOME SCREEN -->
     <div id="screen-home" class="screen active">
         <h1 class="home-title">CineMatch AI</h1>
         <div class="menu-grid">
@@ -262,12 +264,14 @@
         </div>
     </div>
 
+    <!-- DUEL SCREEN -->
     <div id="screen-duel" class="screen">
         <div class="duel-container" id="duel-container">
             <p>Loading movies...</p>
         </div>
     </div>
 
+    <!-- CABINET SCREEN -->
     <div id="screen-cabinet" class="screen">
         <h2 style="color: var(--accent-green);">My Favorites</h2>
         <input type="text" id="cabinet-search" placeholder="Search movies..." oninput="renderCabinetList()">
@@ -275,6 +279,7 @@
         <button class="menu-btn" style="margin-top: 20px; padding: 15px 40px;" onclick="showHome()">Back Home</button>
     </div>
 
+    <!-- OVERLAY -->
     <div class="match-overlay" id="match-overlay">
         <h1>🎬_FINAL_CHOICE!</h1>
         <p id="winner-name"></p>
@@ -334,9 +339,9 @@
                             <div style="flex: 1;">
                                 <strong style="color:var(--accent-green)">${f.title}</strong> (${f.year})<br>
                                 <small style="color: #888">${f.genre}</small>
-                                <p style="font-size:12px; color:#ccc; margin: 5px 0;">${f.desc}</p>
+                                <p style="font-size:12px; color:#ccc; margin:5px 0 0 0;">${f.desc}</p>
                             </div>
-                            <div class="cabinet-actions">
+                            <div class="btn-action-group">
                                 <button 
                                     onclick="toggleWatched('${f.title}')" 
                                     style="padding: 8px 12px; border-radius: 8px; border: none; cursor: pointer; background: ${f.watched ? '#555' : '#4CAF50'}; color: white; font-weight: bold; font-size: 12px;">
@@ -350,7 +355,7 @@
                                 <button 
                                     onclick="window.open('https://kinopoisk.ru/search?query=${f.title}', '_blank')" 
                                     style="padding: 8px 12px; border-radius: 8px; border: 1px solid white; cursor: pointer; color: white; font-weight: bold; font-size: 12px;">
-                                    KinoPoisk
+                                    Кинопоиск
                                 </button>
                             </div>
                         `).join('');
