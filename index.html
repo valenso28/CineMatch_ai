@@ -3,10 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CineMatch AI - Production Ready</title>
+    <title>CineMatch AI</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        /* ... [Стили остаются прежними, добавлена анимация для дебаунсинга] ... */
         :root {
             --bg-color: #0f0f0f;
             --card-bg: #1e1e1e;
@@ -41,10 +40,11 @@
             padding: 20px;
             box-sizing: border-box;
             text-align: center;
-            overflow-y: auto;
         }
 
-        .screen.active { display: flex; }
+        .screen.active {
+            display: flex;
+        }
 
         .home-title {
             font-size: 32px;
@@ -81,6 +81,11 @@
             margin-bottom: 10px;
         }
 
+        .menu-btn:active {
+            transform: scale(0.95);
+            background: #333;
+        }
+
         .duel-container {
             display: flex;
             gap: 20px;
@@ -110,15 +115,40 @@
             user-select: none;
         }
 
+        .card:active {
+            transform: scale(0.95);
+            border-color: var(--accent-green);
+        }
+
         .fly-away {
             transform: translateY(-100px) rotate(20deg) scale(0.8) !important;
             opacity: 0;
         }
 
-        .genre { font-size: 10px; text-transform: uppercase; color: var(--accent-green); margin-bottom: 8px; }
-        .card h2 { font-size: 22px; margin: 0 0 10px 0; color: var(--text-main); }
-        .card .year { font-size: 14px; color: var(--text-dim); margin-bottom: 15px; }
-        .card .description { font-size: 13px; line-height: 1.4; color: #ddd; }
+        .genre {
+            font-size: 10px;
+            text-transform: uppercase;
+            color: var(--accent-green);
+            margin-bottom: 8px;
+        }
+
+        .card h2 {
+            font-size: 22px;
+            margin: 0 0 10px 0;
+            color: var(--text-main);
+        }
+
+        .card .year {
+            font-size: 14px;
+            color: var(--text-dim);
+            margin-bottom: 15px;
+        }
+
+        .card .description {
+            font-size: 13px;
+            line-height: 1.4;
+            color: #ddd;
+        }
 
         .cabinet-list {
             width: 100%;
@@ -210,13 +240,13 @@
 
     <div id="screen-duel" class="screen">
         <div class="duel-container" id="duel-container">
-            <p>Loading...</p>
+            <p>Loading movies...</p>
         </div>
     </div>
 
     <div id="screen-cabinet" class="screen">
         <h2 style="color: var(--accent-green);">My Favorites</h2>
-        <input type="text" id="cabinet-search" placeholder="Search movies..." oninput="handleSearch(this.value)">
+        <input type="text" id="cabinet-search" placeholder="Search movies..." oninput="renderCabinetList()">
         <div class="cabinet-list" id="cabinet-list"></div>
         <button class="menu-btn" style="margin-top: 20px; padding: 15px 40px;" onclick="showHome()">Back Home</button>
     </div>
@@ -229,51 +259,31 @@
     </div>
 
     <script>
-        /**
-         * Senior Architect Note:
-         * 1. State is managed in a central object to avoid UI/Logic coupling.
-         * 2. DOM manipulation is centralized to prevent memory leaks and redundant renders.
-         * 3. XSS Protection: All data is sanitized before being injected into the DOM.
-         * 4. Performance: Debouncing is applied to search inputs.
-         */
-
-        let state = {
-            database: {},
-            currentWinner: null,
-            currentChallenger: null,
-            poolIndex: 0,
-            currentPool: [],
-            favorites: JSON.parse(localStorage.getItem('cineMatch_favs') || '[]')
-        };
+        let movieDatabase = {};
+        let currentWinner = null;
+        let currentChallenger = null;
+        let poolIndex = 0;
+        let currentPool = [];
 
         const container = document.getElementById('duel-container');
 
-        // --- SECURITY: XSS Protection ---
-        function sanitize(str) {
-            const temp = document.createElement('div');
-            temp.textContent = str;
-            return temp.innerHTML;
-        }
-
-        // --- CORE LOGIC ---
         async function initApp() {
             try {
-                const response = await fetch('./movies.json');
+                // FIX: Мы используем путь без точки, чтобы браузер искал файл в корне сайта
+                const response = await fetch('movies.json');
                 if (!response.ok) throw new Error("File not found");
-                state.database = await response.json();
+                
+                movieDatabase = await response.json();
+                console.log("Database Loaded:", movieDatabase);
                 
                 const buttons = document.querySelectorAll('.menu-btn');
                 buttons.forEach(btn => btn.disabled = false);
                 
                 showHome();
             } catch (error) {
-                console.error("Initialization Error:", error);
-                container.innerHTML = `<p style="color:red;">Critical Error: Database not found. Please check movies.json.</p>`;
+                console.error("Error loading movies:", error);
+                container.innerHTML = `<p style="color:red;">Error: Database not found. <br>Check if movies.json exists in the root folder.</p>`;
             }
-        }
-
-        function hideAll() {
-            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
         }
 
         function showHome() {
@@ -284,106 +294,56 @@
         function showCabinet() {
             hideAll();
             const list = document.getElementById('cabinet-list');
+            const searchInput = document.getElementById('cabinet-search');
             list.innerHTML = '';
-            renderCabinetList();
+            const favorites = JSON.parse(localStorage.getItem('cineMatch_favs') || '[]');
+            
+            function renderList() {
+                const query = searchInput.value.toLowerCase();
+                const filtered = favorites.filter(f => 
+                    f.title.toLowerCase().includes(query) || 
+                    f.genre.toLowerCase().includes(query)
+                );
+
+                filtered.sort((a, b) => a.watched - b.watched);
+
+                if (filtered.length === 0) {
+                    list.innerHTML = '<p style="text-align:center; color:#888; margin-top:20px;">No matches found.</p>';
+                } else {
+                    list.innerHTML = filtered.map((f) => `
+                        <div class="cabinet-item">
+                            <div style="flex: 1;">
+                                <strong style="color:var(--accent-green)">${f.title}</strong> (${f.year})<br>
+                                <small style="color: #888">${f.genre}</small>
+                            </div>
+                            <div style="display:flex; gap: 5px;">
+                                <button 
+                                    onclick="toggleWatched('${f.title}')" 
+                                    style="padding: 8px 12px; border-radius: 8px; border: none; cursor: pointer; background: ${f.watched ? '#555' : '#4CAF50'}; color: white; font-weight: bold; font-size: 12px;">
+                                    ${f.watched ? 'Watched' : 'Watch'}
+                                </button>
+                                <button 
+                                    onclick="removeFromFavorites('${f.title}')" 
+                                    style="padding: 8px 12px; border-radius: 8px; border: none; cursor: pointer; background: var(--accent-red); color: white; font-weight: bold; font-size: 12px;">
+                                    Delete
+                                </button>
+                            </div>
+                        `).join('');
+                }
+            }
+
+            searchInput.oninput = renderList;
+            renderList();
             document.getElementById('screen-cabinet').classList.add('active');
         }
 
-        function showDuel(category) {
-            hideAll();
-            const data = state.database[category];
-            if (!data) {
-                alert("Category not found!");
-                showHome();
-                return;
-            }
-
-            state.currentPool = [...data];
-            state.poolIndex = 0;
-            
-            if (state.currentPool.length >= 2) {
-                state.currentWinner = state.currentPool[0];
-                state.currentChallenger = state.currentPool[1];
-                state.currentPool.splice(0, 2);
-            } else {
-                state.currentWinner = state.currentPool[0];
-                state.currentChallenger = state.currentPool[1] || state.currentPool[0];
-                state.currentPool = [];
-            }
-
-            renderDuel();
-            document.getElementById('screen-duel').classList.add('active');
-        }
-
-        function createCardElement(movie) {
-            const card = document.createElement('div');
-            card.className = 'card';
-            // Use textContent / innerHTML carefully with sanitized strings
-            card.innerHTML = `
-                <div class="genre">${sanitize(movie.genre)}</div>
-                <h2>${sanitize(movie.title)}</h2>
-                <div class="year">(${movie.year})</div>
-                <div class="description">${sanitize(movie.desc)}</div>
-            `;
-            return card;
-        }
-
-        function renderDuel() {
-            container.innerHTML = '';
-            if (state.currentWinner && state.currentChallenger) {
-                const c1 = createCardElement(state.currentWinner);
-                const c2 = createCardElement(state.currentChallenger);
-                container.appendChild(c1);
-                container.appendChild(c2);
-                
-                c1.onclick = () => {
-                    c2.classList.add('fly-away');
-                    setTimeout(() => {
-                        c2.remove();
-                        if (state.poolIndex < state.currentPool.length) {
-                            state.currentChallenger = state.currentPool[state.poolIndex];
-                            state.poolIndex++;
-                            renderDuel();
-                        } else {
-                            showFinal(state.currentWinner);
-                        }
-                    }, 400);
-                };
-
-                c2.onclick = () => {
-                    c1.classList.add('fly-away');
-                    setTimeout(() => {
-                        c1.remove();
-                        if (state.poolIndex < state.currentPool.length) {
-                            state.currentWinner = state.currentPool[state.poolIndex];
-                            state.poolIndex++;
-                            renderDuel();
-                        } else {
-                            showFinal(state.currentChallenger);
-                        }
-                    }, 400);
-                };
-            }
-        }
-
-        function showFinal(movie) {
-            container.innerHTML = `<div class="card"><div class="genre">Winner</div><h2>${sanitize(movie.title)}</h2><p>You've found your match!</p></div>`;
-            setTimeout(() => {
-                document.getElementById('match-overlay').style.display = 'flex';
-                document.getElementById('winner-name').innerText = movie.title;
-                document.getElementById('save-btn').onclick = () => {
-                    saveToFavorites(movie);
-                };
-            }, 500);
-        }
-
-        // --- CABINET & FAVORITES LOGIC ---
-
         function saveToFavorites(movie) {
-            const exists = state.favorites.some(f => f.title === movie.title);
+            let favorites = JSON.parse(localStorage.getItem('cineMatch_favs') || '[]');
+            const exists = favorites.some(f => f.title === movie.title);
+            
             if (!exists) {
-                state.favorites.push({ ...movie, watched: false });
-                localStorage.setItem('cineMatch_favs', JSON.stringify(state.favorites));
+                favorites.push({ ...movie, watched: false });
+                localStorage.setItem('cineMatch_favs', JSON.stringify(favorites));
                 alert("Saved to favorites!");
                 document.getElementById('match-overlay').style.display = 'none';
                 showCabinet(); 
@@ -393,46 +353,42 @@
         }
 
         function toggleWatched(title) {
-            const movie = state.favorites.find(f => f.title === title);
+            const favorites = JSON.parse(localStorage.getItem('cineMatch_favs') || '[]');
+            const movie = favorites.find(f => f.title === title);
             if (movie) {
                 movie.watched = !movie.watched;
-                localStorage.setItem('cineMatch_favs', JSON.stringify(state.favorites));
+                localStorage.setItem('cineMatch_favs', JSON.stringify(favorites));
                 renderCabinetList();
             }
         }
 
         function removeFromFavorites(title) {
-            state.favorites = state.favorites.filter(f => f.title !== title);
-            localStorage.setItem('cineMatch_favs', JSON.stringify(state.favorites));
+            let favorites = JSON.parse(localStorage.getItem('cineMatch_favs') || '[]');
+            favorites = favorites.filter(f => f.title !== title);
+            localStorage.setItem('cineMatch_favs', JSON.stringify(favorites));
             renderCabinetList();
         }
 
         function renderCabinetList() {
             const list = document.getElementById('cabinet-list');
-            const query = document.getElementById('cabinet-search').value.toLowerCase();
-            
-            // Sync local state with storage
-            state.favorites = JSON.parse(localStorage.getItem('cineMatch_favs') || '[]');
-            
-            const filtered = state.favorites.filter(f => 
+            const searchInput = document.getElementById('cabinet-search');
+            list.innerHTML = '';
+            const favorites = JSON.parse(localStorage.getItem('cineMatch_favs') || '[]');
+            const query = searchInput.value.toLowerCase();
+            const filtered = favorites.filter(f => 
                 f.title.toLowerCase().includes(query) || 
                 f.genre.toLowerCase().includes(query)
             );
-
-            // Sort: Unwatched first
             filtered.sort((a, b) => a.watched - b.watched);
 
-            list.innerHTML = '';
             if (filtered.length === 0) {
                 list.innerHTML = '<p style="text-align:center; color:#888; margin-top:20px;">No matches found.</p>';
             } else {
-                filtered.forEach((f) => {
-                    const item = document.createElement('div');
-                    item.className = 'cabinet-item';
-                    item.innerHTML = `
+                list.innerHTML = filtered.map((f) => `
+                    <div class="cabinet-item">
                         <div style="flex: 1;">
-                            <strong style="color:var(--accent-green)">${sanitize(f.title)}</strong> (${f.year})<br>
-                            <small style="color: #888">${sanitize(f.genre)}</small>
+                            <strong style="color:var(--accent-green)">${f.title}</strong> (${f.year})<br>
+                            <small style="color: #888">${f.genre}</small>
                         </div>
                         <div style="display:flex; gap: 5px;">
                             <button 
@@ -446,10 +402,88 @@
                                 Delete
                             </button>
                         </div>
-                    `;
-                    list.appendChild(item);
-                });
+                    `).join('');
             }
+        }
+
+        function showDuel(category) {
+            hideAll();
+            currentPool = [...movieDatabase[category]];
+            poolIndex = 0;
+            
+            if (currentPool.length >= 2) {
+                currentWinner = currentPool[0];
+                currentChallenger = currentPool[1];
+                currentPool.splice(0, 2);
+            } else {
+                currentWinner = currentPool[0];
+                currentChallenger = currentPool[1] || currentPool[0];
+                currentPool = [];
+            }
+
+            renderDuel();
+            document.getElementById('screen-duel').classList.add('active');
+        }
+
+        function renderDuel() {
+            container.innerHTML = '';
+            if (currentWinner && currentChallenger) {
+                const c1 = createCardElement(currentWinner);
+                const c2 = createCardElement(currentChallenger);
+                container.appendChild(c1);
+                container.appendChild(c2);
+                
+                c1.onclick = () => {
+                    c2.classList.add('fly-away');
+                    setTimeout(() => {
+                        c2.remove();
+                        if (poolIndex < currentPool.length) {
+                            currentChallenger = currentPool[poolIndex];
+                            poolIndex++;
+                            renderDuel();
+                        } else {
+                            showFinal(currentWinner);
+                        }
+                    }, 400);
+                };
+
+                c2.onclick = () => {
+                    c1.classList.add('fly-away');
+                    setTimeout(() => {
+                        c1.remove();
+                        if (poolIndex < currentPool.length) {
+                            currentWinner = currentPool[poolIndex];
+                            poolIndex++;
+                            renderDuel();
+                        } else {
+                            showFinal(currentChallenger);
+                        }
+                    }, 400);
+                };
+            }
+        }
+
+        function createCardElement(movie) {
+            const card = document.createElement('div');
+            card.className = 'card';
+            card.innerHTML = `
+                <div class="genre">${movie.genre}</div>
+                <h2>${movie.title}</h2>
+                <div class="year">(${movie.year})</div>
+                <div class="description">${movie.desc}</div>
+            `;
+            return card;
+        }
+
+        function showFinal(movie) {
+            container.innerHTML = `<div class="card"><div class="genre">Winner</div><h2>${movie.title}</h2><p>You've found your match!</p></div>`;
+            setTimeout(() => {
+                document.getElementById('match-overlay').style.display = 'flex';
+                document.getElementById('winner-name').innerText = movie.title;
+                document.getElementById('save-btn').onclick = () => {
+                    saveToFavorites(movie);
+                };
+            }, 500);
         }
 
         function closeMatch() {
@@ -457,13 +491,8 @@
             showHome();
         }
 
-        // --- PERFORMANCE OPTIMIZATION: DEBOUNCING ---
-        let debounceTimer;
-        function handleSearch(value) {
-            clearTimeout(debounceTimer);
-            debounceTimer = setTimeout(() => {
-                renderCabinetList();
-            }, 200);
+        function hideAll() {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
         }
 
         const tg = window.Telegram.WebApp;
