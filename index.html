@@ -259,7 +259,44 @@
     </div>
 
     <script>
-        let movieDatabase = {};
+        // ВАЖНО: Теперь база данных находится прямо внутри JS кода.
+        // Это гарантирует, что она всегда будет доступна на всех устройствах.
+        const movieDatabase = {
+            top100: [
+                { title: "The Godfather", year: "1972", genre: "Crime", desc: "The aging patriarch of an organized crime dynasty." },
+                { title: "Schindler's List", year: "1993", genre: "Drama", desc: "A real-life story of heroism." },
+                { title: "Pulp Fiction", year: "1993", genre: "Crime", desc: "The lives of two mob hitmen, a boxer, and a pair of criminals." },
+                { title: "Parasite", year: "2019", genre: "Drama", desc: "Greed and class discrimination in modern Korea." },
+                { title: "Interstellar", year: "2014", genre: "Sci-Fi", desc: "A team of explorers travel through a wormhole in space." },
+                { title: "The Dark Knight", year: "2008", genre: "Action", desc: "Batman faces his greatest challenge against the Joker." },
+                { title: "Spirited Away", year: "2001", genre: "Animation", desc: "A young girl wanders into a world of spirits." },
+                { title: "Gladiator", year: "2000", genre: "Drama", desc: "A former and glorious general sets out to exact vengeance." },
+                { title: "Goodfellas", year: "1990", genre: "Crime", desc: "The true story of the rise and fall of the Lucchese crime family." },
+                { title: "Everything Everywhere", year: "2022", genre: "Adventure", desc: "An extraordinary woman is swept up in a multiversal adventure." }
+            ],
+            drama: [
+                { title: "Manchester by the Sea", year: "2016", genre: "Drama", desc: "A man struggles with his past after a tragedy." },
+                { title: "The Whale", year: "2022", genre: "Drama", desc: "A reclusive man prepares for a final act." },
+                { title: "Moonlight", year: "2016", genre: "Drama", desc: "A complex coming-of-age story." },
+                { title: "Roma", year: "2018", genre: "Drama", desc: "A sweeping portrait of a family in Mexico City." },
+                { title: "La La Land", year: "2016", genre: "Drama", desc: "A jazz pianist and an aspiring actress fall in love." }
+            ],
+            scifi: [
+                { title: "Blade Runner 2049", year: "2017", genre: "Sci-Fi", desc: "A young blade runner unearths a long-buried secret." },
+                { title: "Arrival", year: "2016", genre: "Sci-Fi", desc: "A linguist works to communicate with alien visitors." },
+                { title: "Dune", year: "2021", genre: "Sci-Fi", desc: "A noble family thrown into the center of a galactic war." },
+                { title: "The Matrix", year: "1999", genre: "Sci-Fi", desc: "A hacker learns the truth about his reality." },
+                { title: "Gravity", year: "2013", genre: "Sci-Fi", desc: "An astronaut must survive in outer space." }
+            ],
+            thriller: [
+                { title: "Se7en", year: "1995", genre: "Thriller", desc: "Two detectives hunt a serial killer." },
+                { title: "The Prestige", year: "2006", genre: "Thriller", desc: "Two rival magicians compete for the ultimate trick." },
+                { title: "Shutter Island", year: "2010", genre: "Thriller", desc: "A marshal investigates a disappearance at a mental hospital." },
+                { title: "Memento", year: "2000", genre: "Thriller", desc: "A man with short-term memory loss tries to find his wife's killer." },
+                { title: "Sicario", year: "2015", genre: "Thriller", desc: "An agent-in-training joins an elite task force." }
+            ]
+        };
+
         let currentWinner = null;
         let currentChallenger = null;
         let poolIndex = 0;
@@ -267,44 +304,136 @@
 
         const container = document.getElementById('duel-container');
 
-                async function initApp() {
-            try {
-                // Мы используем путь без точки. 
-                // Если это не поможет, мы попробуем добавить полный путь к твоему репозиторию.
-                const response = await fetch('movies.json');
-                
-                if (!response.ok) {
-                    // Если файл не найден, пробуем еще раз с абсолютным путем к твоему проекту
-                    // Замени 'valenso28.github.io' на твой реальный домен, если он другой
-                    const fallbackResponse = await fetch('https://valenso28.github.io/CineMatch_ai/movies.json');
-                    if (!fallbackResponse.ok) {
-                        throw new Error("File not found at either path");
-                    }
-                    movieDatabase = await fallbackResponse.json();
-                } else {
-                    movieDatabase = await response.json();
-                }
+        function createCardElement(movie) {
+            const card = document.createElement('div');
+            card.className = 'card';
+            card.innerHTML = `
+                <div class="genre">${movie.genre}</div>
+                <h2>${movie.title}</h2>
+                <div class="year">(${movie.year})</div>
+                <div class="description">${movie.desc}</div>
+            `;
+            return card;
+        }
 
-                console.log("Database loaded successfully:", movieDatabase);
+        function renderDuel() {
+            container.innerHTML = '';
+            if (currentWinner && currentChallenger) {
+                const c1 = createCardElement(currentWinner);
+                const c2 = createCardElement(currentChallenger);
+                container.appendChild(c1);
+                container.appendChild(c2);
                 
-                // Разблокируем кнопки только после успешной загрузки
-                const buttons = document.querySelectorAll('.menu-btn');
-                buttons.forEach(btn => btn.disabled = false);
-                
-                showHome();
-            } catch (error) {
-                console.error("Initialization Error:", error);
-                // Выводим подробную ошибку на экран, чтобы мы поняли, что пошло не так
-                container.innerHTML = `
-                    <p style="color:red;">Database Error</p>
-                    <p style="font-size:12px; padding:10px;">
-                        ${error.message}<br>
-                        <small>Check if movies.json exists in the root of the repository.</small>
-                    </p>
-                `;
+                c1.onclick = () => {
+                    c2.classList.add('fly-away');
+                    setTimeout(() => {
+                        c2.remove();
+                        if (poolIndex < currentPool.length) {
+                            currentChallenger = currentPool[poolIndex];
+                            poolIndex++;
+                            renderDuel();
+                        } else {
+                            showFinal(currentWinner);
+                        }
+                    }, 400);
+                };
+
+                c2.onclick = () => {
+                    c1.classList.add('fly-away');
+                    setTimeout(() => {
+                        c1.remove();
+                        if (poolIndex < currentPool.length) {
+                            currentWinner = currentPool[poolIndex];
+                            poolIndex++;
+                            renderDuel();
+                        } else {
+                            showFinal(currentChallenger);
+                        }
+                    }, 400);
+                };
             }
         }
 
+        function showFinal(movie) {
+            container.innerHTML = `<div class="card"><div class="genre">Winner</div><h2>${movie.title}</h2><p>You've found your match!</p></div>`;
+            setTimeout(() => {
+                document.getElementById('match-overlay').style.display = 'flex';
+                document.getElementById('winner-name').innerText = movie.title;
+                document.getElementById('save-btn').onclick = () => {
+                    saveToFavorites(movie);
+                };
+            }, 500);
+        }
+
+        function saveToFavorites(movie) {
+            let favorites = JSON.parse(localStorage.getItem('cineMatch_favs') || '[]');
+            const exists = favorites.some(f => f.title === movie.title);
+            
+            if (!exists) {
+                favorites.push({ ...movie, watched: false });
+                localStorage.setItem('cineMatch_favs', JSON.stringify(favorites));
+                alert("Saved to favorites!");
+                document.getElementById('match-overlay').style.display = 'none';
+                showCabinet(); 
+            } else {
+                alert("Already in favorites!");
+            }
+        }
+
+        function toggleWatched(title) {
+            const favorites = JSON.parse(localStorage.getItem('cineMatch_favs') || '[]');
+            const movie = favorites.find(f => f.title === title);
+            if (movie) {
+                movie.watched = !movie.watched;
+                localStorage.setItem('cineMatch_favs', JSON.stringify(favorites));
+                renderCabinetList();
+            }
+        }
+
+        function removeFromFavorites(title) {
+            let favorites = JSON.parse(localStorage.getItem('cineMatch_favs') || '[]');
+            favorites = favorites.filter(f => f.title !== title);
+            localStorage.setItem('cineMatch_favs', JSON.stringify(favorites));
+            renderCabinetList();
+        }
+
+        function renderCabinetList() {
+            const list = document.getElementById('cabinet-list');
+            const searchInput = document.getElementById('cabinet-search');
+            list.innerHTML = '';
+            const favorites = JSON.parse(localStorage.getItem('cineMatch_favs') || '[]');
+            const query = searchInput.value.toLowerCase();
+            const filtered = favorites.filter(f => 
+                f.title.toLowerCase().includes(query) || 
+                f.genre.toLowerCase().includes(query)
+            );
+
+            filtered.sort((a, b) => a.watched - b.watched);
+
+            if (filtered.length === 0) {
+                list.innerHTML = '<p style="text-align:center; color:#888; margin-top:20px;">No matches found.</p>';
+            } else {
+                list.innerHTML = filtered.map((f) => `
+                    <div class="cabinet-item">
+                        <div style="flex: 1;">
+                            <strong style="color:var(--accent-green)">${f.title}</strong> (${f.year})<br>
+                            <small style="color: #888">${f.genre}</small>
+                        </div>
+                        <div style="display:flex; gap: 5px;">
+                            <button 
+                                onclick="toggleWatched('${f.title}')" 
+                                style="padding: 8px 12px; border-radius: 8px; border: none; cursor: pointer; background: ${f.watched ? '#555' : '#4CAF50'}; color: white; font-weight: bold; font-size: 12px;">
+                                ${f.watched ? 'Watched' : 'Watch'}
+                            </button>
+                            <button 
+                                onclick="removeFromFavorites('${f.title}')" 
+                                style="padding: 8px 12px; border-radius: 8px; border: none; cursor: pointer; background: var(--accent-red); color: white; font-weight: bold; font-size: 12px;">
+                                Delete
+                            </button>
+                        </div>
+                    `).join('');
+            }
+        }
 
         function showHome() {
             hideAll();
@@ -357,115 +486,24 @@
             document.getElementById('screen-cabinet').classList.add('active');
         }
 
-        function saveToFavorites(movie) {
-            let favorites = JSON.parse(localStorage.getItem('cineMatch_favs') || '[]');
-            const exists = favorites.some(f => f.title === movie.title);
-            
-            if (!exists) {
-                favorites.push({ ...movie, watched: false });
-                localStorage.setItem('cineMatch_favs', JSON.stringify(favorites));
-                alert("Saved to favorites!");
-                document.getElementById('match-overlay').style.display = 'none';
-                showCabinet(); 
-            } else {
-                alert("Already in favorites!");
-            }
-        }
-
-        function toggleWatched(title) {
-            const favorites = JSON.parse(localStorage.getItem('cineMatch_favs') || '[]');
-            const movie = favorites.find(f => f.title === title);
-            if (movie) {
-                movie.watched = !movie.watched;
-                localStorage.setItem('cineMatch_favs', JSON.stringify(favorites));
-                renderCabinetList();
-            }
-        }
-
-        function removeFromFavorites(title) {
-            let favorites = JSON.parse(localStorage.getItem('cineMatch_favs') || '[]');
-            favorites = favorites.filter(f => f.title !== title);
-            localStorage.setItem('cineMatch_favs', JSON.stringify(favorites));
-            renderCabinetList();
-        }
-
-        function renderCabinetList() {
-            const list = document.getElementById('cabinet-list');
-            const searchInput = document.getElementById('cabinet-search');
-            list.innerHTML = '';
-            const favorites = JSON.parse(localStorage.getItem('cineMatch_favs') || '[]');
-            const query = searchInput.value.toLowerCase();
-            const filtered = favorites.filter(f => 
-                f.title.toLowerCase().includes(query) || 
-                f.genre.toLowerCase().includes(query)
-            );
-            filtered.sort((a, b) => a.watched - b.watched);
-
-            if (filtered.length === 0) {
-                list.innerHTML = '<p style="text-align:center; color:#888; margin-top:20px;">No matches found.</p>';
-            } else {
-                list.innerHTML = filtered.map((f) => `
-                    <div class="cabinet-item">
-                        <div style="flex: 1;">
-                            <strong style="color:var(--accent-green)">${f.title}</strong> (${f.year})<br>
-                            <small style="color: #888">${f.genre}</small>
-                        </div>
-                        <div style="display:flex; gap: 5px;">
-                            <button 
-                                onclick="toggleWatched('${f.title}')" 
-                                style="padding: 8px 12px; border-radius: 8px; border: none; cursor: pointer; background: ${f.watched ? '#555' : '#4CAF50'}; color: white; font-weight: bold; font-size: 12px;">
-                                ${f.watched ? 'Watched' : 'Watch'}
-                            </button>
-                            <button 
-                                onclick="removeFromFavorites('${f.title}')" 
-                                style="padding: 8px 12px; border-radius: 8px; border: none; cursor: pointer; background: var(--accent-red); color: white; font-weight: bold; font-size: 12px;">
-                                Delete
-                            </button>
-                        </div>
-                    `).join('');
-            }
-        }
-
         function showDuel(category) {
             hideAll();
+            currentPool = [...movieDatabase[category]];
+            poolIndex = 0;
             
-            // Проверка на наличие данных
-            if (!movieDatabase || Object.keys(movieDatabase).length === 0) {
-                alert("Database is empty. Please refresh the page.");
-                showHome();
-                return;
-            }
-
-            // Умная проверка: превращаем категорию из кнопки в нижний регистр (например, "Drama" -> "drama")
-            // И проверяем, есть ли такая категория в базе
-            let lowerCategory = category.toLowerCase();
-            
-            // Ищем в базе ключ, который совпадает с названием категории после приведения к нижнему регистру
-            let foundKey = Object.keys(movieDatabase).find(key => key.toLowerCase() === lowerCategory);
-
-            if (foundKey) {
-                currentPool = [...movieDatabase[foundKey]];
-                poolIndex = 0;
-                
-                if (currentPool.length >= 2) {
-                    currentWinner = currentPool[0];
-                    currentChallenger = currentPool[1];
-                    currentPool.splice(0, 2);
-                } else {
-                    currentWinner = currentPool[0];
-                    currentChallenger = currentPool[1] || currentPool[0];
-                    currentPool = [];
-                }
-
-                renderDuel();
-                document.getElementById('screen-duel').classList.add('active');
+            if (currentPool.length >= 2) {
+                currentWinner = currentPool[0];
+                currentChallenger = currentPool[1];
+                currentPool.splice(0, 2);
             } else {
-                console.error("Category not found in database_ keys:", Object.keys(movieDatabase));
-                alert("Category '" + category + "' not found. Available: " + Object.keys(movieDatabase).join(', '));
-                showHome();
+                currentWinner = currentPool[0];
+                currentChallenger = currentPool[1] || currentPool[0];
+                currentPool = [];
             }
-        }
 
+            renderDuel();
+            document.getElementById('screen-duel').classList.add('active');
+        }
 
         function renderDuel() {
             container.innerHTML = '';
@@ -502,8 +540,6 @@
                         }
                     }, 400);
                 };
-            } else {
-                container.innerHTML = `<p>No movies available in this category.</p>`;
             }
         }
 
@@ -542,7 +578,7 @@
         const tg = window.Telegram.WebApp;
         tg.expand();
 
-        initApp();
+        showHome();
     </script>
 </body>
 </html>
