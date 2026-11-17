@@ -12,7 +12,7 @@
             --accent-green: #4CAF50;
             --accent-red: #ff4d4d;
             --text-main: #ffffff;
-            --text-dim: #a0a0a0;
+            --text-dim: #b0b0b0;
             --transition-speed: 0.4s;
         }
 
@@ -87,7 +87,6 @@
             background: #333;
         }
 
-        /* DUEL SCREEN STYLES */
         .duel-container {
             display: flex;
             gap: 20px;
@@ -148,11 +147,11 @@
 
         .card .description {
             font-size: 13px;
-            line-height: 1.4;
+            line-height: 1.5;
             color: #ddd;
         }
 
-        /* CABINET STYLES (FIXED VERTICAL) */
+        /* CABINET STYLES - STRICT VERTICAL LAYOUT */
         .cabinet-list {
             width: 100%;
             max-width: 400px;
@@ -168,9 +167,10 @@
             border-radius: 15px;
             border: 1px solid #333;
             display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 10px;
+            flex-direction: column;
+            gap: 12px;
+            width: 100%;
+            box-sizing: border-box;
             animation: fadeIn 0.3s ease forwards;
         }
 
@@ -183,20 +183,34 @@
             width: 80%;
             padding: 12px;
             border-radius: 10px;
-            border: 1px solid #444;
+            border: 2px solid #444;
             background: #222;
             color: white;
             margin-bottom: 20px;
             outline: none;
         }
 
-        .btn-action-group {
+        .cabinet-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+
+        .cabinet-header h3 {
+            margin: 0;
+            font-size: 18px;
+            color: var(--accent-green);
+        }
+
+        .cabinet-actions {
             display: flex;
             gap: 8px;
+            justify-content: flex-end;
         }
 
         .btn-watch {
-            padding: 8px 12px;
+            padding: 10px 15px;
             border-radius: 8px;
             border: none;
             background: var(--accent-green);
@@ -207,7 +221,7 @@
         }
 
         .btn-delete {
-            padding: 8px 12px;
+            padding: 10px 15px;
             border-radius: 8px;
             border: none;
             background: var(--accent-red);
@@ -218,9 +232,9 @@
         }
 
         .btn-kinopoisk {
-            padding: 8px 12px;
+            padding: 10px 15px;
             border-radius: 8px;
-            border: 1px solid white;
+            border: 2px solid white;
             background: transparent;
             color: white;
             cursor: pointer;
@@ -281,14 +295,50 @@
 
     <!-- OVERLAY -->
     <div class="match-overlay" id="match-overlay">
-        <h1>🎬_FINAL_CHOICE!</h1>
+        <h1>🎬 FINAL CHOICE!</h1>
         <p id="winner-name"></p>
         <button id="save-btn">❤️ Save to Favorites</button>
         <button onclick="closeMatch()">Skip</button>
     </div>
 
     <script>
-        let movieDatabase = {};
+        // DATABASE WITH EXTENDED DESCRIPTIONS
+        const movieDatabase = {
+            top100: [
+                { title: "The Godfather", year: "1972", genre: "Crime", desc: "The aging patriarch of an organized crime dynasty transfers control of his-empire to his-son, while navigating a complex world of violence, loyalty, and power.", poster: "" },
+                { title: "Schindler's List", year: "1993", genre: "Drama", desc: "A powerful and moving true story of Oskar Schindler, a German businessman who saved more than a thousand Jews during the Holocaust.", poster: "" },
+                { title: "Pulp Fiction", year: "1993", genre: "Crime", desc: "The lives of two mob hitmen, a boxer, and a pair of-less-than-glamorous-criminals intertwine in ways that create-unpredictable, stylized violence.", poster: "" },
+                { title: "Parasite", year: "2019", genre: "Drama", desc: "A poor family schemes to become employed by a wealthy family by infiltrating their household, leading to unexpected and dark consequences.", poster: "" },
+                { title: "Interstellar", year: "2014", genre: "Sci-Fi", desc: "A team of explorers travel through a wormhole in space in search of a new-home for humanity, while facing the consequences of time-dilation.", poster: "" },
+                { title: "The Dark Knight", year: "2008", genre: "Action", desc: "Batman faces his greatest psychological challenge when the-chaotic Joker emerges, threatening to dismantle the order of Gotham City.", poster: "" },
+                { title: "Spirited Away", year: "2001", genre: "Animation", desc: "A young girl finds herself trapped in a mysterious world of gods, spirits, and monsters, and must work to rescue her parents.", poster: "" },
+                { title: "Gladiator", year: "2000", genre: "Drama", desc: "A former and glorious general sets out to exact vengeance against the corrupt emperor who murdered his family and stole his life.", poster: "" },
+                { title: "Goodfellas", year: "1990", genre: "Crime", desc: "The true story of the rise and fall of the Lucchese crime family, exploring the brutal reality of organized crime in the 70s and 80s.", poster: "" },
+                { title: "Everything Everywhere", year: "2022", genre: "Adventure", desc: "An extraordinary woman is swept up in a multiversal adventure, where she must connect-with-her-multiverse-selves to save existence.", poster: "" }
+            ],
+            drama: [
+                { title: "Manchester by the Sea", year: "2016", genre: "Drama", desc: "A man struggles with his past after a tragedy, finding himself forced to take care of his nephew in a small, wintry coastal town.", poster: "" },
+                { title: "The Whale", year: "2022", genre: "Drama", desc: "A reclusive man prepares for a final act by attempting to reconnect with his estranged daughter before it's too late.", poster: "" },
+                { title: "Moonlight", year: "2016", genre: "Drama", desc: "A complex coming-of-age story about a boy growing up in Miami, exploring themes of identity, masculinity, and inner strength.", poster: "" },
+                { title: "Roma", year: "2018", genre: "Drama", desc: "A sweeping portrait of a family in Mexico City, following the life of a live-in maid in the household.", poster: "" },
+                { title: "La La Land", year: "2016", genre: "Drama", desc: "A jazz pianist and an aspiring actress fall in love while pursuing their dreams in modern-day Los Angeles.", poster: "" }
+            ],
+            scifi: [
+                { title: "Blade Runner 2049", year: "2017", genre: "Sci-Fi", desc: "A young blade runner unearths a long-buried secret that could plunge what remains of society into total-chaos.", poster: "" },
+                { title: "Arrival", year: "2016", genre: "Sci-Fi", desc: "A linguist works to communicate with alien visitors, whose arrival poses an existential threat to the future of humanity.", poster: "" },
+                { title: "Dune", year: "2021", genre: "Sci-Fi", desc: "A noble family thrown into the center of a galactic war, where they must survive the harsh desert landscape of Arrakis.", poster: "" },
+                { title: "The Matrix", year: "1999", genre: "Sci-Fi", desc: "A hacker learns the truth about his reality, realizing that the world he lives in is actually a complex simulation.", poster: "" },
+                { title: "Gravity", year: "2013", genre: "Sci-Fi", desc: "An astronaut must survive in outer space after their ship is destroyed, facing isolation and physical extremes.", poster: "" }
+            ],
+            thriller: [
+                { title: "Se7en", year: "1995", genre: "Thriller", desc: "Two detectives hunt a serial killer who uses the seven deadly sins as inspiration for his gruesome murders.", poster: "" },
+                { title: "The Prestige", year: "2006", genre: "Thriller", desc: "Two rival magicians compete for the ultimate trick, leading to a dangerous game of obsession and deception.", poster: "" },
+                { title: "Shutter Island", year: "2010", genre: "Thriller", desc: "A marshal investigates a disappearance at a mental hospital, only to find his own reality beginning to unravel.", poster: "" },
+                { title: "Memento", year: "2000", genre: "Thriller", desc: "A man with short-term memory loss tries to find his wife's killer, piecing together clues in a non-linear narrative.", poster: "" },
+                { title: "Sicario", year: "2015", genre: "Thriller", desc: "An agent-in-training joins an elite task force to take down the drug-trafficking cartels in the Mexican-American border.", poster: "" }
+            ]
+        };
+
         let currentWinner = null;
         let currentChallenger = null;
         let poolIndex = 0;
@@ -306,7 +356,7 @@
                 showHome();
             } catch (error) {
                 console.error("Init Error:", error);
-                container.innerHTML = "<p>Error loading database. Check movies.json</p>";
+                container.innerHTML = "<p>Error loading database. Please check movies.json</p>";
             }
         }
 
@@ -341,7 +391,7 @@
                                 <small style="color: #888">${f.genre}</small>
                                 <p style="font-size:12px; color:#ccc; margin:5px 0 0 0;">${f.desc}</p>
                             </div>
-                            <div class="btn-action-group">
+                            <div style="display:flex; gap: 5px;">
                                 <button 
                                     onclick="toggleWatched('${f.title}')" 
                                     style="padding: 8px 12px; border-radius: 8px; border: none; cursor: pointer; background: ${f.watched ? '#555' : '#4CAF50'}; color: white; font-weight: bold; font-size: 12px;">
