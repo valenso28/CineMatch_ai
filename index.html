@@ -269,20 +269,19 @@
 
         async function initApp() {
             try {
-                // FIX: Мы используем путь без точки, чтобы браузер искал файл в корне сайта
+                // Используем относительный путь без точки
                 const response = await fetch('movies.json');
-                if (!response.ok) throw new Error("File not found");
+                if (!response.ok) throw new Error("Failed to fetch movies.json");
                 
                 movieDatabase = await response.json();
-                console.log("Database Loaded:", movieDatabase);
+                console.log("Data loaded successfully:", movieDatabase);
                 
                 const buttons = document.querySelectorAll('.menu-btn');
                 buttons.forEach(btn => btn.disabled = false);
-                
                 showHome();
             } catch (error) {
-                console.error("Error loading movies:", error);
-                container.innerHTML = `<p style="color:red;">Error: Database not found. <br>Check if movies.json exists in the root folder.</p>`;
+                console.error("Initialization Error:", error);
+                container.innerHTML = `<p style="color:red;">Error loading database. Check if movies.json exists in the same folder.</p>`;
             }
         }
 
@@ -408,7 +407,15 @@
 
         function showDuel(category) {
             hideAll();
-            currentPool = [...movieDatabase[category]];
+            const data = movieDatabase[category];
+            
+            if (!data || data.length === 0) {
+                alert("No movies found in this category!");
+                showHome();
+                return;
+            }
+
+            currentPool = [...data];
             poolIndex = 0;
             
             if (currentPool.length >= 2) {
@@ -460,6 +467,8 @@
                         }
                     }, 400);
                 };
+            } else {
+                container.innerHTML = `<p>No movies available in this category.</p>`;
             }
         }
 
