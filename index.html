@@ -267,23 +267,44 @@
 
         const container = document.getElementById('duel-container');
 
-        async function initApp() {
+                async function initApp() {
             try {
-                // Используем относительный путь без точки
+                // Мы используем путь без точки. 
+                // Если это не поможет, мы попробуем добавить полный путь к твоему репозиторию.
                 const response = await fetch('movies.json');
-                if (!response.ok) throw new Error("Failed to fetch movies.json");
                 
-                movieDatabase = await response.json();
-                console.log("Data loaded successfully:", movieDatabase);
+                if (!response.ok) {
+                    // Если файл не найден, пробуем еще раз с абсолютным путем к твоему проекту
+                    // Замени 'valenso28.github.io' на твой реальный домен, если он другой
+                    const fallbackResponse = await fetch('https://valenso28.github.io/CineMatch_ai/movies.json');
+                    if (!fallbackResponse.ok) {
+                        throw new Error("File not found at either path");
+                    }
+                    movieDatabase = await fallbackResponse.json();
+                } else {
+                    movieDatabase = await response.json();
+                }
+
+                console.log("Database loaded successfully:", movieDatabase);
                 
+                // Разблокируем кнопки только после успешной загрузки
                 const buttons = document.querySelectorAll('.menu-btn');
                 buttons.forEach(btn => btn.disabled = false);
+                
                 showHome();
             } catch (error) {
                 console.error("Initialization Error:", error);
-                container.innerHTML = `<p style="color:red;">Error loading database. Check if movies.json exists in the same folder.</p>`;
+                // Выводим подробную ошибку на экран, чтобы мы поняли, что пошло не так
+                container.innerHTML = `
+                    <p style="color:red;">Database Error</p>
+                    <p style="font-size:12px; padding:10px;">
+                        ${error.message}<br>
+                        <small>Check if movies.json exists in the root of the repository.</small>
+                    </p>
+                `;
             }
         }
+
 
         function showHome() {
             hideAll();
