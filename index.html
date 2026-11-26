@@ -151,26 +151,22 @@
             color: #ddd;
         }
 
-        /* CABINET STYLES - STRICT VERTICAL */
+        /* CABINET STYLES - ABSOLUTE VERTICAL */
         .cabinet-list {
             width: 100%;
             max-width: 400px;
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-            padding: 10px;
-            align-items: center;
+            display: block; /* Forced block display */
+            margin: 0 auto;
         }
 
         .cabinet-item {
+            display: block; /* Every item is a block */
             width: 100%;
             background: var(--card-bg);
             padding: 15px;
             border-radius: 15px;
+            margin-bottom: 15px; /* Clear separation */
             border: 1px solid #333;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
             box-sizing: border-box;
             animation: fadeIn 0.3s ease forwards;
         }
@@ -189,6 +185,12 @@
             color: white;
             margin-bottom: 20px;
             outline: none;
+        }
+
+        .btn-action-group {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
         }
 
         .btn-watch {
@@ -216,7 +218,7 @@
         .btn-kinopoisk {
             padding: 8px 12px;
             border-radius: 8px;
-            border: 2px solid white;
+            border: 1px solid white;
             background: transparent;
             color: white;
             cursor: pointer;
@@ -248,7 +250,6 @@
 </head>
 <body class="tg-app">
 
-    <!-- HOME SCREEN -->
     <div id="screen-home" class="screen active">
         <h1 class="home-title">CineMatch AI</h1>
         <div class="menu-grid">
@@ -260,14 +261,12 @@
         </div>
     </div>
 
-    <!-- DUEL SCREEN -->
     <div id="screen-duel" class="screen">
         <div class="duel-container" id="duel-container">
             <p>Loading movies...</p>
         </div>
     </div>
 
-    <!-- CABINET SCREEN -->
     <div id="screen-cabinet" class="screen">
         <h2 style="color: var(--accent-green);">My Favorites</h2>
         <input type="text" id="cabinet-search" placeholder="Search movies..." oninput="renderCabinetList()">
@@ -275,7 +274,6 @@
         <button class="menu-btn" style="margin-top: 20px; padding: 15px 40px;" onclick="showHome()">Back Home</button>
     </div>
 
-    <!-- OVERLAY -->
     <div class="match-overlay" id="match-overlay">
         <h1>🎬 FINAL CHOICE!</h1>
         <p id="winner-name"></p>
@@ -302,7 +300,7 @@
                 showHome();
             } catch (error) {
                 console.error("Init Error:", error);
-                container.innerHTML = "<p>Error loading database. Check movies.json</p>";
+                container.innerHTML = "<p>Error loading database. Please check movies.json</p>";
             }
         }
 
@@ -337,7 +335,7 @@
                                 <small style="color: #888">${f.genre}</small>
                                 <p style="font-size:12px; color:#ccc; margin:5px 0 0 0;">${f.desc}</p>
                             </div>
-                            <div style="display:flex; gap: 5px;">
+                            <div class="btn-action-group">
                                 <button 
                                     onclick="toggleWatched('${f.title}')" 
                                     style="padding: 8px 12px; border-radius: 8px; border: none; cursor: pointer; background: ${f.watched ? '#555' : '#4CAF50'}; color: white; font-weight: bold; font-size: 12px;">
